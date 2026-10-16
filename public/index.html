@@ -468,12 +468,12 @@ function hud(){
   if(!me||!me.sl)return;
   const k0=me.sl[me.cur],m=Math.floor(clock/60),sec=Math.floor(clock%60);
   const mine=lobbyList.find(p=>p[0]===myId),lead=Math.max(0,...lobbyList.map(p=>p[2]));
-  const key=[me.hp,m,sec,mine&&mine[2],lead,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
+  const key=[me.hp,m,sec,mine&&mine[2],lead,lobbyList.length,roomCode,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
   if(key===hudKey)return;hudKey=key;
   $('hpTxt').textContent=me.hp;$('hpBar').style.width=me.hp+'%';
   $('hpBox').classList.toggle('low',me.hp<=30);$('ammoBox').classList.toggle('empty',me.mag===0);
   $('clock').textContent=`${m}:${String(sec).padStart(2,'0')}`;
-  $('score').textContent=`내 킬 ${mine?mine[2]:0} · 선두 ${lead}/${GOAL} · ${ping}ms`;
+  $('score').textContent=`방 ${roomCode} · ${lobbyList.length}명 · 내 킬 ${mine?mine[2]:0}/${GOAL} · ${ping}ms`;
   $('wName').textContent=WEAPONS[k0].name;$('mag').textContent=me.mag;$('res').textContent=me.res;
   $('slots').innerHTML=me.sl.map((x,i)=>`<span class="${i===me.cur?'on':''}">${i+1} ${WEAPONS[x].name}</span>`).join('');
   $('feed').innerHTML=feed.map(f=>`<div>${f.txt}</div>`).join('');
