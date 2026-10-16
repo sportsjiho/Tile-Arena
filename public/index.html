@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Tile Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-bleed canvas, three screen states (home / play / result) swapped via [hidden]. Single dark look by choice. */
+:root{
+  --bg:#0f1316; --floor:#151b1f; --panel:#1b2328; --line:#2a353c;
+  --fg:#e6ece9; --muted:#8a9a99; --accent:#f2b134; --enemy:#e2574c; --ally:#4fc3a1;
+  --display:"Chakra Petch","Noto Sans KR",system-ui,sans-serif;
+  --body:"Noto Sans KR",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.screen{position:fixed;inset:0;overflow-y:auto;background:var(--bg);display:flex;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px))}
+.wrap{width:100%;max-width:520px;display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-size:clamp(34px,9vw,52px);line-height:1;margin:8px 0 0;letter-spacing:.02em;text-wrap:balance}
+h1 b{color:var(--accent)}
+.sub{color:var(--muted);margin:0;font-size:14px}
+label.cap{font-family:var(--display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.field{display:flex;flex-direction:column;gap:8px}
+input[type=text]{background:var(--panel);border:1px solid var(--line);color:var(--fg);font:500 16px var(--body);padding:12px 14px;border-radius:6px}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.go{background:var(--accent);color:#14110a;border:0;border-radius:6px;padding:15px;font:700 18px var(--display);letter-spacing:.06em;cursor:pointer}
+.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:13px;font:500 15px var(--body);cursor:pointer}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.note{font-size:12px;color:var(--muted);margin:0}
+.keys{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
+kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--fg)}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;font-family:var(--display)}
+.top{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.top>.feed{position:absolute;right:0;top:100%;margin-top:8px}
+.hp{width:min(300px,50vw);display:flex;flex-direction:column;gap:6px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.hp span{font-size:72px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums}
+.hp span small{font-size:22px;color:var(--muted);font-weight:500;margin-left:6px}
+.hp .bar{height:20px;border-radius:4px;background:rgba(255,255,255,.14)}
+.hp.low span{color:var(--enemy)}.hp.low .bar i{background:var(--enemy)}
+.hp .bar i{background:var(--ally);transition:width .15s}
+.clock{text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.clock small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:3px}
+.feed{width:140px;text-align:right;font-family:var(--body);font-size:11px;display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+.feed b{color:var(--fg);font-weight:500}
+.ammo{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:right;font-variant-numeric:tabular-nums}
+.ammo .w{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.ammo{text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.ammo .a{font-size:96px;font-weight:700;line-height:.95}
+.ammo .a small{font-size:34px;color:var(--muted)}
+.ammo.empty .a span{color:var(--enemy)}
+.ammo .w{font-size:18px}
+.ammo .slots span{font-size:13px;padding:2px 8px}
+@media (max-width:600px){.hp span{font-size:56px}.ammo .a{font-size:72px}.ammo .a small{font-size:26px}}
+.slots{display:flex;gap:4px;justify-content:flex-end;margin-top:4px}
+.slots span{font-size:10px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
+.slots span.on{border-color:var(--accent);color:var(--accent)}
+.tbtn{position:absolute;pointer-events:auto;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--fg);font:700 12px var(--display)}
+.touch .ammo{bottom:auto;top:calc(8px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px))}
+.touch .feed{display:none}
+/* result */
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:9px 6px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+th{font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:500;text-transform:uppercase}
+td.n{text-align:right}th.n{text-align:right}
+tr.me td{color:var(--accent);font-weight:700}
+/* lobby + home */
+.codebox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.codebox b{font-family:var(--display);font-size:38px;letter-spacing:.2em;color:var(--accent);line-height:1}
+.codebox button{flex:none}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plist li{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:15px}
+.plist li.me{border-color:var(--accent)}
+.plist .dot{width:10px;height:10px;border-radius:50%;background:var(--enemy);flex:none}
+.plist li.me .dot{background:var(--ally)}
+.plist .tag{margin-left:auto;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--accent)}
+.joinrow{display:flex;gap:8px}
+.joinrow input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:.3em;text-align:center;font-family:var(--display);font-size:20px}
+.joinrow button{flex:none;padding-inline:18px}
+.err{color:var(--enemy);font-size:13px;margin:0;min-height:1em}
+button:disabled{opacity:.5;cursor:default}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" hidden>
+  <div class="top">
+    <div class="hp" id="hpBox"><span><b id="hpTxt">100</b><small>HP</small></span><div class="bar"><i id="hpBar" style="width:100%"></i></div></div>
+    <div class="clock"><span id="clock">3:00</span><small id="score"></small></div>
+    <div class="feed" id="feed"></div>
+  </div>
+  <div class="ammo" id="ammoBox">
+    <div class="w" id="wName">권총</div>
+    <div class="a"><span id="mag">12</span> <small>/ <span id="res">36</span></small></div>
+    <div class="slots" id="slots"></div>
+  </div>
+  <button class="tbtn" id="bReload" hidden aria-label="재장전">R</button>
+  <button class="tbtn" id="bSwap" hidden aria-label="무기 교체">⇄</button>
+</div>
+
+<section class="screen" id="home">
+  <div class="wrap">
+    <div>
+      <h1>TILE <b>ARENA</b></h1>
+      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 또는 15킬</p>
+    </div>
+    <div class="field">
+      <label class="cap" for="nick">닉네임</label>
+      <input type="text" id="nick" maxlength="10" value="플레이어" autocomplete="off">
+    </div>
+    <button class="go" id="create">방 만들기</button>
+    <div class="field">
+      <label class="cap" for="code">방 코드로 참가</label>
+      <div class="joinrow"><input type="text" id="code" maxlength="6" placeholder="ABCD" autocomplete="off"><button class="ghost" id="join">참가</button></div>
+    </div>
+    <button class="ghost" id="quick">빠른 참가</button>
+    <p class="err" id="err"></p>
+    <p class="note">모두 권총으로 시작해요. 경기 중 맵에 소총·샷건·저격총이 떨어지면 먼저 줍는 사람이 가져가요.</p>
+    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체<br>모바일: 왼쪽 조이스틱 이동, 오른쪽 조이스틱 조준+발사</p>
+  </div>
+</section>
+
+<section class="screen" id="lobby" hidden>
+  <div class="wrap">
+    <div><h1>대기실</h1><p class="sub" id="lobbySub">친구에게 코드를 알려주세요</p></div>
+    <div class="codebox"><b id="lobbyCode">----</b><button class="ghost" id="copy">링크 복사</button></div>
+    <ul class="plist" id="plist"></ul>
+    <button class="go" id="startBtn">경기 시작</button>
+    <button class="ghost" id="leave">나가기</button>
+  </div>
+</section>
+
+<section class="screen" id="result" hidden>
+  <div class="wrap">
+    <div><h1 id="rTitle">경기 종료</h1><p class="sub" id="rSub"></p></div>
+    <table><thead><tr><th>#</th><th>플레이어</th><th class="n">킬</th><th class="n">데스</th></tr></thead><tbody id="rBody"></tbody></table>
+    <button class="go" id="toLobby">대기실로</button>
+  </div>
+</section>
+
+<script type="module">
+import {WEAPONS,T,MW,MH,MUZZLE,GOAL,grid,tile,inBush,moveStep} from './shared.js';
+
+const $=id=>document.getElementById(id);
+const cv=$('game'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR}
+addEventListener('resize',resize);resize();
+const isTouch=matchMedia('(pointer:coarse)').matches;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---------- state ----------
+let mode='HOME',ws=null,myId=0,hostId=0,roomCode='',lobbyList=[];
+let me=null,others=new Map(),bullets=[],fx=[],items=[],feed=[],clock=0,ping=0,lastResult=null;
+const keys={},mouse={x:0,y:0,down:false};
+const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
+let curIn={mx:0,my:0,ang:0,f:false};
+const nameOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[1]:'?'};
+
+// ---------- network ----------
+function connect(code,create,name){
+  return new Promise((resolve,reject)=>{
+    const proto=location.protocol==='https:'?'wss:':'ws:';
+    const sock=new WebSocket(`${proto}//${location.host}/ws?room=${code}&create=${create?1:0}&name=${encodeURIComponent(name)}`);
+    let settled=false;
+    sock.onmessage=ev=>{
+      const m=JSON.parse(ev.data);
+      if(!settled){
+        if(m.t==='w'){settled=true;ws=sock;myId=m.id;roomCode=m.code||code;sock.onmessage=ev2=>handle(JSON.parse(ev2.data));resolve()}
+        else if(m.t==='err'){settled=true;reject(new Error(m.m))}
+      }
+    };
+    sock.onerror=()=>{if(!settled){settled=true;reject(new Error('connect'))}};
+    sock.onclose=()=>{
+      if(!settled){settled=true;reject(new Error('connect'));return}
+      if(ws===sock){ws=null;if(mode!=='HOME'){goHome('연결이 끊겼어요.')}}
+    };
+  });
+}
+const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
+const ERR={room_missing:'그런 방이 없어요. 코드를 확인해 주세요.',room_full:'방이 가득 찼어요.',connect:'서버에 연결하지 못했어요.'};
+function nick(){const n=$('nick').value.trim().slice(0,10)||'플레이어';try{localStorage.setItem('arena_nick',n)}catch(_){}return n}
+async function enter(code,create){
+  $('err').textContent='';setBusy(true);audioInit();
+  try{await connect(code,create,nick());resetWorld();setScreen('LOBBY');history.replaceState(null,'','#'+roomCode)}
+  catch(e){$('err').textContent=ERR[e.message]||ERR.connect;throw e}
+  finally{setBusy(false)}
+}
+function setBusy(b){for(const id of['create','join','quick'])$(id).disabled=b}
+const rcode=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<4;i++)s+=a[Math.floor(Math.random()*a.length)];return s};
+$('create').onclick=()=>enter(rcode(),true).catch(()=>{});
+$('join').onclick=()=>{const c=$('code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<3){$('err').textContent='코드를 입력해 주세요.';return}enter(c,false).catch(()=>{})};
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter')$('join').click()});
+$('quick').onclick=async()=>{
+  for(let i=1;i<=6;i++){
+    try{await enter('Q'+i,true);return}catch(e){if(e.message!=='room_full')return}
+  }
+  $('err').textContent='빠른 참가 방이 모두 가득 찼어요. 방을 만들어 주세요.';
+};
+$('leave').onclick=()=>{const s=ws;ws=null;if(s)s.close();goHome('')};
+$('startBtn').onclick=()=>send({t:'go'});
+$('toLobby').onclick=()=>setScreen('LOBBY');
+$('copy').onclick=async()=>{
+  const url=location.origin+'/#'+roomCode;
+  try{await navigator.clipboard.writeText(url);$('copy').textContent='복사됨'}catch(_){$('copy').textContent=roomCode}
+  setTimeout(()=>$('copy').textContent='링크 복사',1500);
+};
+function goHome(msg){
+  const s=ws;ws=null;if(s)try{s.close()}catch(_){}
+  me=null;others.clear();setScreen('HOME');$('err').textContent=msg||'';
+}
+function resetWorld(){me=null;others.clear();bullets=[];fx=[];items=[];feed=[];lobbyList=[];lastResult=null}
+
+setInterval(()=>{send({t:'ping',n:performance.now()})},2000);
+setInterval(()=>{if(mode==='PLAYING'&&me)send({t:'in',mx:+curIn.mx.toFixed(2),my:+curIn.my.toFixed(2),ang:+curIn.ang.toFixed(3),f:curIn.f})},33);
+
+function handle(m){
+  switch(m.t){
+    case 'lobby':
+      lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;renderLobby();break;
+    case 'ph':
+      if(m.ph==='PLAYING'){clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
+      break;
+    case 's':onSnap(m);break;
+    case 'items':{
+      const old=new Map(items.map(i=>[i.uid,i]));
+      items=m.l.map(([type,k,x,y,av,drop,uid])=>({type,k,x,y,av,drop,uid,born:old.has(uid)?old.get(uid).born:performance.now()}));break}
+    case 'sh':onShot(m);break;
+    case 'hit':{const p=posOf(m.id);if(p)fx.push({k:'hit',x:p.x,y:p.y,t:.25});if(m.by===myId&&m.id!==myId)sfx('hit');break}
+    case 'kill':{
+      const p=posOf(m.id);
+      if(p)for(let i=0;i<10;i++)fx.push({k:'gib',x:p.x,y:p.y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,t:.5,c:m.id===myId?'#4fc3a1':'#e2574c'});
+      pushFeed(`<b>${esc(m.bn)}</b> → ${esc(m.vn)}`,4);break}
+    case 'pk':sfx('pick');if(WEAPONS[m.k])pushFeed(`<b>${WEAPONS[m.k].name}</b> 획득`,2.5);break;
+    case 'drop':pushFeed(`<b>${WEAPONS[m.k].name}</b> 등장`,3);break;
+    case 'result':onResult(m);break;
+    case 'pong':ping=Math.round(performance.now()-m.n);break;
+  }
+}
+function pushFeed(txt,t){feed.unshift({txt,t});feed.length=Math.min(feed.length,4)}
+function posOf(id){return id===myId?me:others.get(id)}
+function onSnap(m){
+  const now=performance.now();clock=m.c;
+  const moving=Math.hypot(curIn.mx,curIn.my)>.01;
+  for(const[id,x,y,ang,hp,dead,inv,wk,rl]of m.p){
+    if(id===myId){
+      if(!me)me={x,y,ang:0};
+      Object.assign(me,{hp,dead,inv,wk,rl});
+      const err=Math.hypot(x-me.x,y-me.y);
+      if(dead>0||err>150){me.x=x;me.y=y}
+      else if(!moving){me.x+=(x-me.x)*.25;me.y+=(y-me.y)*.25}
+      else if(err>50){me.x+=(x-me.x)*.3;me.y+=(y-me.y)*.3}
+      Object.assign(me,m.m);
+    }else{
+      let o=others.get(id);if(!o){o={id,snaps:[]};others.set(id,o)}
+      o.snaps.push({t:now,x,y,ang});if(o.snaps.length>12)o.snaps.shift();
+      Object.assign(o,{hp,dead,inv,wk,rl});
+    }
+  }
+  const ids=new Set(m.p.map(a=>a[0]));for(const id of others.keys())if(!ids.has(id))others.delete(id);
+}
+function interp(o,rt){
+  const s=o.snaps;if(!s.length)return;
+  let a=s[0],b=s[0];
+  for(let i=0;i<s.length;i++){if(s[i].t<=rt){a=s[i];b=s[Math.min(i+1,s.length-1)]}}
+  if(rt>=s[s.length-1].t){a=b=s[s.length-1]}
+  const k=b.t>a.t?Math.min(1,Math.max(0,(rt-a.t)/(b.t-a.t))):1;
+  o.x=a.x+(b.x-a.x)*k;o.y=a.y+(b.y-a.y)*k;
+  let d=((b.ang-a.ang+Math.PI*3)%(Math.PI*2))-Math.PI;o.ang=a.ang+d*k;
+}
+function onShot(m){
+  const p=posOf(m.id);
+  if(p)fx.push({k:'flash',x:p.x+Math.cos(p.ang||0)*(MUZZLE[m.k]+4),y:p.y+Math.sin(p.ang||0)*(MUZZLE[m.k]+4),t:.06});
+  for(const[x,y,vx,vy,life,pierce]of m.b)bullets.push({x,y,px:x,py:y,vx,vy,life,sn:!!pierce});
+  if(m.id===myId)sfx(m.k);else if(p&&me&&Math.hypot(p.x-me.x,p.y-me.y)<600)sfx(m.k,.25);
+}
+function onResult(m){
+  lastResult=m;
+  const mine=m.r.findIndex(r=>r[0]===myId)+1;
+  $('rTitle').textContent=mine===1?'1위 승리':`${mine}위`;
+  $('rSub').textContent=m.why==='time'?'제한 시간 종료':`${esc(m.r[0][1])} 님이 ${GOAL}킬 달성`;
+  $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('');
+  mouse.down=false;for(const k in keys)keys[k]=false;
+  setScreen('RESULT');
+}
+function renderLobby(){
+  $('lobbyCode').textContent=roomCode;
+  $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot"></span>${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
+  const host=hostId===myId;
+  $('startBtn').hidden=!host;
+  $('lobbySub').textContent=host?`${lobbyList.length}명 참가 중 · 준비되면 시작하세요`:'방장이 시작하길 기다리는 중';
+}
+
+// ---------- input ----------
+addEventListener('keydown',e=>{
+  if(mode!=='PLAYING'||e.target.tagName==='INPUT')return;
+  keys[e.code]=true;
+  if(e.code==='KeyR')send({t:'rl'});
+  if(e.code.startsWith('Digit')){const i=+e.code.slice(5)-1;if(me&&me.sl&&me.sl[i]!==undefined)send({t:'sw',i})}
+  if(e.code==='KeyQ')swap(1);
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+function swap(d){if(!me||!me.sl)return;send({t:'sw',i:(me.cur+d+me.sl.length)%me.sl.length})}
+cv.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+cv.addEventListener('mousedown',e=>{if(e.button===0){mouse.down=true;audioInit()}});
+addEventListener('mouseup',()=>mouse.down=false);
+cv.addEventListener('wheel',e=>{if(mode==='PLAYING')swap(e.deltaY>0?1:-1);e.preventDefault()},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('touchstart',e=>{
+  audioInit();
+  for(const t of e.changedTouches){
+    const st=t.clientX<W/2?stickL:stickR;
+    if(st.id===null){st.id=t.identifier;st.ox=t.clientX;st.oy=t.clientY;st.dx=st.dy=0}
+  }
+  e.preventDefault();
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  for(const t of e.changedTouches)for(const st of[stickL,stickR])if(st.id===t.identifier){
+    let dx=t.clientX-st.ox,dy=t.clientY-st.oy;const l=Math.hypot(dx,dy);if(l>50){dx*=50/l;dy*=50/l}
+    st.dx=dx/50;st.dy=dy/50;
+  }
+  e.preventDefault();
+},{passive:false});
+const endTouch=e=>{for(const t of e.changedTouches)for(const st of[stickL,stickR])if(st.id===t.identifier){st.id=null;st.dx=st.dy=0}};
+cv.addEventListener('touchend',endTouch);cv.addEventListener('touchcancel',endTouch);
+$('bReload').addEventListener('touchstart',e=>{e.preventDefault();send({t:'rl'})});
+$('bSwap').addEventListener('touchstart',e=>{e.preventDefault();swap(1)});
+function readInput(){
+  let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0),my=(keys.KeyS?1:0)-(keys.KeyW?1:0),f=false,ang=me.ang||0;
+  if(stickL.id!==null){mx=stickL.dx;my=stickL.dy}
+  if(stickR.id!==null){if(Math.hypot(stickR.dx,stickR.dy)>.3){ang=Math.atan2(stickR.dy,stickR.dx);f=true}}
+  else if(!isTouch){const c=cam();ang=Math.atan2(mouse.y+c.y-me.y,mouse.x+c.x-me.x);f=mouse.down}
+  curIn={mx,my,ang,f};
+}
+
+// ---------- audio ----------
+let ac=null;
+function audioInit(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(_){}}}
+const SND={pistol:[220,.06,'square'],rifle:[180,.04,'square'],shotgun:[90,.12,'sawtooth'],sniper:[60,.2,'sawtooth'],hit:[880,.04,'triangle'],reload:[440,.05,'triangle'],pick:[660,.08,'sine']};
+function sfx(k,vol=.5){
+  if(!ac||!SND[k])return;const[f,d,type]=SND[k];
+  const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,ac.currentTime);
+  o.frequency.exponentialRampToValueAtTime(f*.5,ac.currentTime+d);
+  g.gain.setValueAtTime(.08*vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);
+  o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+}
+
+// ---------- loop ----------
+function update(dt){
+  if(!me)return;
+  readInput();
+  if(!me.dead&&me.wk){moveStep(me,curIn.mx,curIn.my,dt,me.wk)}
+  me.ang=curIn.ang;
+  const rt=performance.now()-100;
+  for(const o of others.values())interp(o,rt);
+  for(const b of bullets){
+    b.px=b.x;b.py=b.y;
+    const steps=Math.ceil(Math.hypot(b.vx,b.vy)*dt/8);
+    for(let i=0;i<steps&&b.life>0;i++){
+      b.x+=b.vx*dt/steps;b.y+=b.vy*dt/steps;
+      if(tile(Math.floor(b.x/T),Math.floor(b.y/T))===1){b.life=0;fx.push({k:'spark',x:b.x,y:b.y,t:.15});break}
+    }
+    b.life-=dt;
+  }
+  bullets=bullets.filter(b=>b.life>0);
+  for(const f of fx){f.t-=dt;if(f.vx){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.9;f.vy*=.9}}
+  fx=fx.filter(f=>f.t>0);
+  for(const f of feed)f.t-=dt;feed=feed.filter(f=>f.t>0);
+}
+function cam(){
+  const x=Math.max(Math.min(me.x-W/2,MW*T-W),0),y=Math.max(Math.min(me.y-H/2,MH*T-H),0);
+  return{x:MW*T<W?(MW*T-W)/2:x,y:MH*T<H?(MH*T-H)/2:y};
+}
+// Proportions measured from the reference art (body fill radius 131px = 13 game px, scale 0.099).
+// Local coords: +x is the aim direction. Each rect is [x0,x1,y0,y1] of the light-grey fill; outline adds ~1.1px outside.
+const GUNS={
+  pistol:[[8,21.5,-2,2]],
+  rifle:[[8,28.4,-2.6,2.6],[28.4,30,-2.4,-0.4]],
+  sniper:[[6,23,-1.5,1.5],[23,44,-.7,.7],[42,46,-1.6,1.6],[43,45,-2.5,-1.6]],
+  shotgun:[[5,29,-9,-2],[5,29,2,9]]
+};
+function drawGun(e,k){
+  ctx.save();ctx.translate(e.x,e.y);ctx.rotate(e.ang||0);
+  const Rr=GUNS[k];
+  ctx.lineJoin='round';ctx.strokeStyle='#000';ctx.lineWidth=k==='shotgun'?5:2.2;
+  for(const[a,b,c,d]of Rr)ctx.strokeRect(a,c,b-a,d-c);
+  ctx.fillStyle='#d3dcdc';
+  for(const[a,b,c,d]of Rr)ctx.fillRect(a,c,b-a,d-c);
+  ctx.restore();
+}
+const ICON={hp:'+',ammo:'≡'},ICOL={hp:'#4fc3a1',ammo:'#f2b134',w:'#9db4ff'};
+function drawPlayer(e,isMe){
+  if(e.dead>0)return;
+  if(!isMe&&inBush(e)&&me&&Math.hypot(e.x-me.x,e.y-me.y)>90)return;
+  const gk=e.wk||'pistol',color=isMe?'#4fc3a1':'#e2574c';
+  ctx.globalAlpha=e.inv>0?.5+.3*Math.sin(performance.now()/60):1;
+  if(gk!=='shotgun')drawGun(e,gk);
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(e.x,e.y,13.95,0,7);ctx.fill();
+  ctx.strokeStyle='#000';ctx.lineWidth=2.1;ctx.stroke();
+  if(gk==='shotgun')drawGun(e,gk);
+  ctx.globalAlpha=1;
+  if(!isMe){
+    ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(e.x-14,e.y-24,28,3);
+    ctx.fillStyle='#e2574c';ctx.fillRect(e.x-14,e.y-24,28*e.hp/100,3);
+    ctx.fillStyle='#8a9a99';ctx.font='500 10px "Noto Sans KR",sans-serif';ctx.fillText(nameOf(e.id),e.x,e.y-32);
+  }
+  if(e.rl>0){ctx.strokeStyle='#f2b134';ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-e.rl));ctx.stroke()}
+}
+function render(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle='#0f1316';ctx.fillRect(0,0,W,H);
+  if(!me){ctx.fillStyle='#8a9a99';ctx.font='500 16px "Noto Sans KR",sans-serif';ctx.textAlign='center';ctx.fillText('연결 중…',W/2,H/2);return}
+  const c=cam();ctx.save();ctx.translate(-Math.round(c.x),-Math.round(c.y));
+  const x0=Math.max(0,Math.floor(c.x/T)),y0=Math.max(0,Math.floor(c.y/T)),x1=Math.min(MW,Math.ceil((c.x+W)/T)),y1=Math.min(MH,Math.ceil((c.y+H)/T));
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+    const v=grid[y][x],px=x*T,py=y*T;
+    if(v===1){ctx.fillStyle='#2e3a41';ctx.fillRect(px,py,T,T);ctx.fillStyle='#3a4952';ctx.fillRect(px,py,T,4)}
+    else{ctx.fillStyle=(x+y)%2?'#151b1f':'#171e22';ctx.fillRect(px,py,T,T)}
+    if(v===2){ctx.fillStyle='#6b4f2a';ctx.fillRect(px+2,py+2,T-4,T-4);ctx.strokeStyle='#8a6a3a';ctx.lineWidth=2;ctx.strokeRect(px+4,py+4,T-8,T-8);
+      ctx.beginPath();ctx.moveTo(px+4,py+4);ctx.lineTo(px+T-4,py+T-4);ctx.moveTo(px+T-4,py+4);ctx.lineTo(px+4,py+T-4);ctx.stroke()}
+  }
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(const it of items){
+    if(!it.av)continue;
+    const bob=Math.sin(performance.now()/300+it.x)*2;
+    ctx.fillStyle=ICOL[it.type];ctx.globalAlpha=.18;ctx.beginPath();ctx.arc(it.x,it.y,14,0,7);ctx.fill();ctx.globalAlpha=1;
+    if(it.drop){const age=(performance.now()-it.born)/1000;if(age<1){ctx.strokeStyle=ICOL.w;ctx.lineWidth=2;ctx.globalAlpha=1-age;ctx.beginPath();ctx.arc(it.x,it.y,14+age*40,0,7);ctx.stroke();ctx.globalAlpha=1}}
+    ctx.font='700 13px "Chakra Petch",sans-serif';
+    ctx.fillText(it.type==='w'?WEAPONS[it.k].name:ICON[it.type],it.x,it.y+bob);
+  }
+  ctx.lineCap='round';
+  for(const b of bullets){ctx.strokeStyle=b.sn?'#ffe7a8':'#f2b134';ctx.lineWidth=b.sn?3:2;ctx.beginPath();ctx.moveTo(b.px,b.py);ctx.lineTo(b.x,b.y);ctx.stroke()}
+  for(const o of others.values())if(o.x!==undefined)drawPlayer(o,false);
+  drawPlayer(me,true);
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(grid[y][x]===3){
+    ctx.fillStyle='rgba(54,92,58,.88)';ctx.fillRect(x*T,y*T,T,T);
+    ctx.fillStyle='rgba(78,124,72,.9)';ctx.beginPath();ctx.arc(x*T+10,y*T+12,8,0,7);ctx.arc(x*T+22,y*T+20,9,0,7);ctx.fill();
+  }
+  for(const f of fx){
+    if(f.k==='flash'){ctx.fillStyle='rgba(255,220,140,.9)';ctx.beginPath();ctx.arc(f.x,f.y,6,0,7);ctx.fill()}
+    else if(f.k==='spark'){ctx.fillStyle='rgba(242,177,52,'+f.t/.15+')';ctx.fillRect(f.x-2,f.y-2,4,4)}
+    else if(f.k==='hit'){ctx.strokeStyle='rgba(255,255,255,'+f.t/.25+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x,f.y,16+(.25-f.t)*40,0,7);ctx.stroke()}
+    else if(f.k==='gib'){ctx.globalAlpha=f.t/.5;ctx.fillStyle=f.c;ctx.fillRect(f.x-2,f.y-2,4,4);ctx.globalAlpha=1}
+  }
+  ctx.restore();
+  if(me.dead>0){
+    ctx.fillStyle='rgba(15,19,22,.55)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#e6ece9';ctx.font='700 22px "Chakra Petch",sans-serif';ctx.fillText(`리스폰 ${Math.ceil(me.dead)}`,W/2,H/2);
+  }
+  for(const st of[stickL,stickR])if(st.id!==null){
+    ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(st.ox,st.oy,50,0,7);ctx.stroke();
+    ctx.fillStyle=st===stickR?'rgba(242,177,52,.5)':'rgba(255,255,255,.3)';ctx.beginPath();ctx.arc(st.ox+st.dx*50,st.oy+st.dy*50,20,0,7);ctx.fill();
+  }
+}
+let hudKey='';
+function hud(){
+  if(!me||!me.sl)return;
+  const k0=me.sl[me.cur],m=Math.floor(clock/60),sec=Math.floor(clock%60);
+  const mine=lobbyList.find(p=>p[0]===myId),lead=Math.max(0,...lobbyList.map(p=>p[2]));
+  const key=[me.hp,m,sec,mine&&mine[2],lead,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
+  if(key===hudKey)return;hudKey=key;
+  $('hpTxt').textContent=me.hp;$('hpBar').style.width=me.hp+'%';
+  $('hpBox').classList.toggle('low',me.hp<=30);$('ammoBox').classList.toggle('empty',me.mag===0);
+  $('clock').textContent=`${m}:${String(sec).padStart(2,'0')}`;
+  $('score').textContent=`내 킬 ${mine?mine[2]:0} · 선두 ${lead}/${GOAL} · ${ping}ms`;
+  $('wName').textContent=WEAPONS[k0].name;$('mag').textContent=me.mag;$('res').textContent=me.res;
+  $('slots').innerHTML=me.sl.map((x,i)=>`<span class="${i===me.cur?'on':''}">${i+1} ${WEAPONS[x].name}</span>`).join('');
+  $('feed').innerHTML=feed.map(f=>`<div>${f.txt}</div>`).join('');
+}
+let last=performance.now();
+function frame(t){
+  const dt=Math.min(.05,(t-last)/1000);last=t;
+  if(mode==='PLAYING'){update(dt);render();hud()}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- screens ----------
+function setScreen(m){
+  mode=m;
+  $('home').hidden=m!=='HOME';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
+  $('bReload').hidden=$('bSwap').hidden=!isTouch;
+  document.body.classList.toggle('touch',isTouch);
+  if(isTouch){
+    const b=$('bReload'),s=$('bSwap');
+    b.style.right='max(18px, env(safe-area-inset-right,0px))';b.style.bottom='calc(150px + env(safe-area-inset-bottom,0px))';
+    s.style.right='max(80px, env(safe-area-inset-right,0px))';s.style.bottom='calc(170px + env(safe-area-inset-bottom,0px))';
+  }
+  if(m==='LOBBY')renderLobby();
+  hudKey='';
+}
+try{const n=localStorage.getItem('arena_nick');if(n)$('nick').value=n}catch(_){}
+const h=location.hash.slice(1).toUpperCase().replace(/[^A-Z0-9]/g,'');
+if(h){$('code').value=h}
+setScreen('HOME');
+</script>
+</body>
+</html>
