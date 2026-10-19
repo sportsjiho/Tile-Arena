@@ -1,5 +1,5 @@
 // Game simulation. Runs in the Durable Object for online rooms, and in the browser for AI practice.
-import {WEAPONS,MUZZLE,T,MATCH,GOAL,TEAM_GOAL,R,MAX_PLAYERS,SPAWNS,ITEM_DEF,DROP_EVERY,DROP_MAX,DROP_KINDS,tile,moveStep,los,inBush,randOpen} from './shared.js';
+import {WEAPONS,MUZZLE,T,MATCH,GOAL,TEAM_GOAL,R,MAX_PLAYERS,DROP_EVERY,DROP_MAX,DROP_KINDS,tile,moveStep,los,inBush,randOpen,getMap,pickMap,MAP_LIST} from './shared.js';
 
 const TICK=30,RESPAWN=3,RESULT_SECS=6;
 const BOT_NAMES=['Fox','Rook','Vega','Moss','Juno','Kite','Ash'];
@@ -17,7 +17,7 @@ export class Game{
     this.players=new Map();this.nextId=1;this.phase='LOBBY';this.clock=MATCH;
     this.bullets=[];this.items=[];this.dropT=0;this.hostId=0;this.code='';
     this.timer=null;this.last=0;this.resultT=0;this.fill=0;this.uid=1;
-    this.mode='ffa';this.diff='normal';
+    this.mode='ffa';this.diff='normal';this.mapSel='random';this.map=getMap('warehouse');
   }
   isTeam(){return this.mode==='team'}
   foe(a,b){return a!==b&&(!this.isTeam()||a.team!==b.team)}
@@ -52,7 +52,7 @@ export class Game{
     const drop=()=>this.removePlayer(p);
     ws.addEventListener('close',drop);ws.addEventListener('error',drop);
     this.broadcastLobby();
-    if(this.phase==='PLAYING'){this.send(p,{t:'ph',ph:'PLAYING',c:this.clock});this.sendItems(p)}
+    if(this.phase==='PLAYING'){this.send(p,{t:'ph',ph:'PLAYING',c:this.clock,mode:this.mode,map:this.map.id});this.sendItems(p)}
     if(!this.timer){this.last=Date.now();this.timer=setInterval(()=>this.tick(),1000/TICK)}
     return p;
   }
@@ -84,7 +84,7 @@ export class Game{
   send(p,o){if(!p.ws)return;try{p.ws.send(JSON.stringify(o))}catch(_){}}
   all(o){const s=JSON.stringify(o);for(const p of this.players.values()){if(!p.ws)continue;try{p.ws.send(s)}catch(_){}}}
   broadcastLobby(){
-    this.all({t:'lobby',ph:this.phase,host:this.hostId,code:this.code,mode:this.mode,diff:this.diff,tk:this.teamKills(),
+    this.all({t:'lobby',ph:this.phase,host:this.hostId,code:this.code,mode:this.mode,diff:this.diff,map:this.mapSel,tk:this.teamKills(),
       p:[...this.players.values()].map(p=>[p.id,p.name,p.kills,p.deaths,p.bot?1:0,p.team])});
   }
   sendItems(to){
@@ -108,6 +108,7 @@ export class Game{
       if(p.id!==this.hostId||this.phase==='PLAYING')return;
       if(m.mode==='ffa'||m.mode==='team')this.mode=m.mode;
       if(DIFF[m.diff])this.diff=m.diff;
+      if(m.map==='random'||MAP_LIST.some(x=>x[0]===m.map))this.mapSel=m.map;
       this.balance();this.broadcastLobby();
     }else if(m.t==='ping')this.send(p,{t:'pong',n:m.n});
   }
@@ -115,7 +116,7 @@ export class Game{
   loadout(p){p.slots=[{k:'pistol',mag:12,res:36}];p.cur=0;p.rl=0;p.cd=0}
   spawn(p){
     let best=null,bd=-1;
-    for(const[sx,sy]of SPAWNS){
+    for(const[sx,sy]of this.map.spawns){
       const x=sx*T+T/2,y=sy*T+T/2;let d=1e9;
       for(const o of this.players.values())if(this.foe(o,p)&&!o.dead)d=Math.min(d,Math.hypot(o.x-x,o.y-y));
       d+=Math.random()*120;if(d>bd){bd=d;best=[x,y]}
@@ -125,13 +126,14 @@ export class Game{
 
   startMatch(){
     for(const p of[...this.players.values()])if(p.bot&&(p.auto||this.fill>0))this.players.delete(p.id);
+    this.map=getMap(pickMap(this.mapSel));
     this.phase='PLAYING';this.clock=MATCH;this.bullets=[];this.dropT=3;this.uid=1;
     for(let i=0;i<this.fill&&this.players.size<MAX_PLAYERS;i++)this.addBot(BOT_NAMES[i%BOT_NAMES.length],false);
-    this.items=ITEM_DEF.map(([type,x,y])=>({type,x:x*T+T/2,y:y*T+T/2,cool:0,uid:this.uid++}));
+    this.items=this.map.items.map(([type,x,y])=>({type,x:x*T+T/2,y:y*T+T/2,cool:0,uid:this.uid++}));
     this.balance();
     for(const p of this.players.values()){p.kills=0;p.deaths=0;p.input.fire=false;p.dead=0}
     for(const p of this.players.values())this.spawn(p);
-    this.all({t:'ph',ph:'PLAYING',c:this.clock,mode:this.mode});
+    this.all({t:'ph',ph:'PLAYING',c:this.clock,mode:this.mode,map:this.map.id});
     this.sendItems();
     this.broadcastLobby();
   }
@@ -181,7 +183,7 @@ export class Game{
       const steps=Math.ceil(Math.hypot(b.vx,b.vy)*dt/8);
       for(let i=0;i<steps&&b.life>0;i++){
         b.x+=b.vx*dt/steps;b.y+=b.vy*dt/steps;
-        const tv=tile(Math.floor(b.x/T),Math.floor(b.y/T));
+        const tv=tile(this.map,Math.floor(b.x/T),Math.floor(b.y/T));
         if(tv===1){b.life=0;break}
         if(tv===2&&!b.pierce&&!b.crate){b.crate=1;if(Math.random()<.6){b.life=0;break}}
         for(const e of this.players.values()){
@@ -217,7 +219,7 @@ export class Game{
     if(this.items.filter(i=>i.drop).length>=DROP_MAX)return;
     let x,y;
     for(let tries=0;tries<30;tries++){
-      [x,y]=randOpen();
+      [x,y]=randOpen(this.map);
       if(![...this.players.values()].some(e=>!e.dead&&Math.hypot(e.x-x,e.y-y)<160))break;
     }
     const k=DROP_KINDS[Math.floor(Math.random()*DROP_KINDS.length)];
@@ -234,8 +236,8 @@ export class Game{
       if(!this.foe(o,p)||o.dead)continue;
       const d=Math.hypot(o.x-p.x,o.y-p.y);
       if(d>D.view||d>=td)continue;
-      if(inBush(o)&&d>90)continue;
-      if(los(p.x,p.y,o.x,o.y)){tgt=o;td=d}
+      if(inBush(this.map,o)&&d>90)continue;
+      if(los(this.map,p.x,p.y,o.x,o.y)){tgt=o;td=d}
     }
     inp.fire=false;
     if(s.mag===0)this.reload(p);
@@ -256,7 +258,7 @@ export class Game{
       if(a.t<=0||stuck||Math.hypot(a.tx-p.x,a.ty-p.y)<20){
         const items=this.items.filter(i=>i.cool<=0&&((i.drop&&!p.slots.some(x=>x.k===i.k))||(i.type==='hp'&&p.hp<60)))
           .sort((q,r)=>Math.hypot(q.x-p.x,q.y-p.y)-Math.hypot(r.x-p.x,r.y-p.y));
-        if(items[0]&&Math.random()<D.greed){a.tx=items[0].x;a.ty=items[0].y}else[a.tx,a.ty]=randOpen();
+        if(items[0]&&Math.random()<D.greed){a.tx=items[0].x;a.ty=items[0].y}else[a.tx,a.ty]=randOpen(this.map);
         a.t=5;
       }
       inp.mx=a.tx-p.x;inp.my=a.ty-p.y;
@@ -285,7 +287,7 @@ export class Game{
       if(p.dead){p.dead-=dt;if(p.dead<=0)this.spawn(p);continue}
       if(p.bot)this.botThink(p,dt);
       p.ang=p.input.ang;
-      moveStep(p,p.input.mx,p.input.my,dt,p.slots[p.cur].k);
+      moveStep(this.map,p,p.input.mx,p.input.my,dt,p.slots[p.cur].k);
       if(p.input.fire)this.shoot(p);
       this.pickups(p);
     }

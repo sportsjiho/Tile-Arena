@@ -33,4 +33,5 @@ Durable Objects work on the Workers free plan (SQLite-backed class, already set 
 - Modes: 데스매치 (first to 10 kills) or 팀전 (블루 vs 레드, first team to 20, no friendly fire). 3-minute limit either way.
 - AI difficulty 초급/중간/강함 (`DIFF` in public/sim.js): reaction time, aim noise, turn speed, sight range.
 - Online: the host picks mode and AI difficulty in the lobby.
+- Maps: 창고 70x50, 숲 72x52, 도시 76x56, or 랜덤 (built in public/shared.js `BUILD`). The camera caps the visible area, so you never see the whole map; the minimap (bottom-right) shows walls, you, teammates and your view box, never enemies.
 - Tuning: weapon numbers and map are in `public/shared.js`.

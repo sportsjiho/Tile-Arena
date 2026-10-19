@@ -41,17 +41,27 @@ kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;pa
 #hud{position:fixed;inset:0;pointer-events:none;font-family:var(--display)}
 .top{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .top>.feed{position:absolute;right:0;top:100%;margin-top:8px}
+.top>.clock{position:absolute;left:50%;top:0;transform:translateX(-50%)}
+.top>.feed{top:0;margin-top:0}
 .hp{width:min(300px,50vw);display:flex;flex-direction:column;gap:6px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
 .hp span{font-size:72px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums}
 .hp span small{font-size:22px;color:var(--muted);font-weight:500;margin-left:6px}
 .hp .bar{height:20px;border-radius:4px;background:rgba(255,255,255,.14)}
 .hp.low span{color:var(--enemy)}.hp.low .bar i{background:var(--enemy)}
 .hp .bar i{background:var(--ally);transition:width .15s}
-.clock{text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
-.clock small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:3px}
+.clock{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;gap:4px}
+.clock #clock{font-size:60px;line-height:.95}
+.clock.low #clock{color:var(--enemy)}
+.kills{display:flex;align-items:baseline;gap:6px}
+.kills b{font-size:48px;color:var(--accent);line-height:1}
+.kills small{font-size:20px;color:var(--muted);font-weight:500}
+.tscore{font-size:24px;line-height:1}
+.tscore .b{color:#5aa9e6}.tscore .r{color:var(--enemy)}
+.clock small.info{display:block;font-size:12px;color:var(--muted);font-weight:500;font-family:var(--body)}
+#mini{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));border:1px solid rgba(255,255,255,.25);border-radius:4px;background:rgba(15,19,22,.6)}
 .feed{width:140px;text-align:right;font-family:var(--body);font-size:11px;display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .feed b{color:var(--fg);font-weight:500}
-.ammo{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:right;font-variant-numeric:tabular-nums}
+.ammo{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:left;font-variant-numeric:tabular-nums}
 .ammo .w{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 .ammo{text-shadow:0 2px 8px rgba(0,0,0,.7)}
 .ammo .a{font-size:96px;font-weight:700;line-height:.95}
@@ -59,12 +69,12 @@ kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;pa
 .ammo.empty .a span{color:var(--enemy)}
 .ammo .w{font-size:18px}
 .ammo .slots span{font-size:13px;padding:2px 8px}
-@media (max-width:600px){.hp span{font-size:56px}.ammo .a{font-size:72px}.ammo .a small{font-size:26px}}
-.slots{display:flex;gap:4px;justify-content:flex-end;margin-top:4px}
+@media (max-width:600px){.top>.clock{left:auto;right:0;transform:none;align-items:flex-end;text-align:right}.hp{width:46vw}.hp span{font-size:52px}.ammo .a{font-size:60px}.ammo .a small{font-size:22px}.clock #clock{font-size:42px}.kills b{font-size:34px}.kills small{font-size:15px}.tscore{font-size:18px}}
+.slots{display:flex;gap:4px;justify-content:flex-start;margin-top:4px}
 .slots span{font-size:10px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
 .slots span.on{border-color:var(--accent);color:var(--accent)}
 .tbtn{position:absolute;pointer-events:auto;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--fg);font:700 12px var(--display)}
-.touch .ammo{bottom:auto;top:calc(8px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px))}
+.touch .ammo{left:38%;transform:translateX(-50%);text-align:center}.touch .ammo .slots{justify-content:center}.touch .ammo .a{font-size:52px}.touch .ammo .a small{font-size:20px}
 .touch .feed{display:none}
 /* result */
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
@@ -104,7 +114,7 @@ button:disabled{opacity:.5;cursor:default}
 <div id="hud" hidden>
   <div class="top">
     <div class="hp" id="hpBox"><span><b id="hpTxt">100</b><small>HP</small></span><div class="bar"><i id="hpBar" style="width:100%"></i></div></div>
-    <div class="clock"><span id="clock">3:00</span><small id="score"></small></div>
+    <div class="clock" id="clockBox"><span id="clock">3:00</span><div class="tscore" id="tscore" hidden></div><div class="kills"><b id="kills">0</b><small id="killsGoal">/ 10 킬</small></div><small class="info" id="score"></small></div>
     <div class="feed" id="feed"></div>
   </div>
   <div class="ammo" id="ammoBox">
@@ -112,6 +122,7 @@ button:disabled{opacity:.5;cursor:default}
     <div class="a"><span id="mag">12</span> <small>/ <span id="res">36</span></small></div>
     <div class="slots" id="slots"></div>
   </div>
+  <canvas id="mini"></canvas>
   <button class="tbtn" id="bReload" hidden aria-label="재장전">R</button>
   <button class="tbtn" id="bSwap" hidden aria-label="무기 교체">⇄</button>
 </div>
@@ -138,6 +149,8 @@ button:disabled{opacity:.5;cursor:default}
       <span class="cap">AI와 플레이</span>
       <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
       <div class="seg" id="soloDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
+      <span class="cap">맵</span>
+      <div class="seg" id="soloMap"><button aria-pressed="false" data-v="warehouse">창고</button><button aria-pressed="false" data-v="forest">숲</button><button aria-pressed="false" data-v="city">도시</button><button aria-pressed="true" data-v="random">랜덤</button></div>
       <span class="cap">봇 수</span>
       <div class="joinrow">
         <div class="seg" id="bots"><button aria-pressed="false" data-n="3">3</button><button aria-pressed="true" data-n="5">5</button><button aria-pressed="false" data-n="7">7</button></div>
@@ -157,6 +170,8 @@ button:disabled{opacity:.5;cursor:default}
     <div class="field">
       <span class="cap">모드</span>
       <div class="seg" id="lMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
+      <span class="cap">맵</span>
+      <div class="seg" id="lMap"><button aria-pressed="false" data-v="warehouse">창고</button><button aria-pressed="false" data-v="forest">숲</button><button aria-pressed="false" data-v="city">도시</button><button aria-pressed="true" data-v="random">랜덤</button></div>
       <span class="cap">AI 난이도 · 나간 플레이어를 대신하는 AI</span>
       <div class="seg" id="lDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
       <p class="note" id="modeNote"></p>
@@ -176,7 +191,7 @@ button:disabled{opacity:.5;cursor:default}
 </section>
 
 <script type="module">
-import {WEAPONS,T,MW,MH,MUZZLE,GOAL,TEAM_GOAL,grid,tile,inBush,moveStep} from './shared.js';
+import {WEAPONS,T,MUZZLE,GOAL,TEAM_GOAL,tile,inBush,moveStep,getMap,MAP_LIST} from './shared.js';
 import {Game} from './sim.js';
 
 const $=id=>document.getElementById(id);
@@ -195,6 +210,8 @@ const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
 let solo=false,local=null,localMsg=null,localClose=null,botCount=5;
 let soloMode='ffa',soloDiff='normal',roomMode='ffa',roomDiff='normal',teamK=[0,0];
+let soloMap='random',roomMap='random',curMap=getMap('warehouse'),Z=1,VW=0,VH=0,miniFor=null;
+const MAP_NAME=Object.fromEntries([...MAP_LIST,['random','랜덤']]);
 const TEAM_NAME=['블루','레드'],TEAM_COL=['#5aa9e6','#e2574c'];
 const teamOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[5]:0};
 function seg(id,cb){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;setSeg(id,b.dataset.v);cb(b.dataset.v)})}
@@ -251,7 +268,8 @@ $('again').onclick=()=>send({t:'go'});
 $('bots').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;botCount=+b.dataset.n;for(const x of $('bots').children)x.setAttribute('aria-pressed',x===b)});
 $('solo').onclick=()=>startSolo(botCount);
 seg('soloMode',v=>soloMode=v);seg('soloDiff',v=>soloDiff=v);
-seg('lMode',v=>send({t:'cfg',mode:v,diff:roomDiff}));seg('lDiff',v=>send({t:'cfg',mode:roomMode,diff:v}));
+seg('lMode',v=>send({t:'cfg',mode:v,diff:roomDiff,map:roomMap}));seg('lDiff',v=>send({t:'cfg',mode:roomMode,diff:v,map:roomMap}));
+seg('lMap',v=>send({t:'cfg',mode:roomMode,diff:roomDiff,map:v}));seg('soloMap',v=>soloMap=v);
 function stopLocal(){
   if(local){try{localClose&&localClose()}catch(_){}clearInterval(local.timer);local=null}
   solo=false;localMsg=null;localClose=null;
@@ -260,7 +278,7 @@ function stopLocal(){
 function startSolo(n){
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
   stopLocal();audioInit();resetWorld();
-  const g=new Game();g.code='AI';g.fill=n;g.mode=soloMode;g.diff=soloDiff;local=g;solo=true;roomCode='AI';
+  const g=new Game();g.code='AI';g.fill=n;g.mode=soloMode;g.diff=soloDiff;g.mapSel=soloMap;local=g;solo=true;roomCode='AI';
   const L={};
   const fake={send(d){const m=JSON.parse(d);queueMicrotask(()=>{if(local===g)handle(m)})},addEventListener(t,f){L[t]=f},close(){}};
   localMsg=o=>L.message&&L.message({data:JSON.stringify(o)});
@@ -290,9 +308,9 @@ function handle(m){
     case 'w':myId=m.id;if(m.code)roomCode=m.code;break;
     case 'left':pushFeed(`<b>${esc(m.n)}</b> 이어받음`,3);break;
     case 'lobby':
-      lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;roomMode=m.mode||'ffa';roomDiff=m.diff||'normal';teamK=m.tk||[0,0];renderLobby();break;
+      lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;roomMode=m.mode||'ffa';roomDiff=m.diff||'normal';roomMap=m.map||'random';teamK=m.tk||[0,0];renderLobby();break;
     case 'ph':
-      if(m.ph==='PLAYING'){clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
+      if(m.ph==='PLAYING'){curMap=getMap(m.map);if(m.mode)roomMode=m.mode;clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
       break;
     case 's':onSnap(m);break;
     case 'items':{
@@ -367,8 +385,9 @@ function renderLobby(){
   $('lobbyCode').textContent=roomCode;
   const team=roomMode==='team';
   setSeg('lMode',roomMode);setSeg('lDiff',roomDiff);
-  for(const id of['lMode','lDiff']){$(id).classList.toggle('ro',hostId!==myId);for(const b of $(id).children)b.disabled=hostId!==myId}
-  $('modeNote').textContent=team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`;
+  setSeg('lMap',roomMap);
+  for(const id of['lMode','lDiff','lMap']){$(id).classList.toggle('ro',hostId!==myId);for(const b of $(id).children)b.disabled=hostId!==myId}
+  $('modeNote').textContent=(team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`)+` · 맵: ${MAP_NAME[roomMap]}`;
   $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot${team?' t'+p[5]:''}"></span>${team?`<small style="color:${TEAM_COL[p[5]]}">${TEAM_NAME[p[5]]}</small> `:''}${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
   const host=hostId===myId;
   $('startBtn').hidden=!host;
@@ -413,7 +432,7 @@ function readInput(){
   let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0),my=(keys.KeyS?1:0)-(keys.KeyW?1:0),f=false,ang=me.ang||0;
   if(stickL.id!==null){mx=stickL.dx;my=stickL.dy}
   if(stickR.id!==null){if(Math.hypot(stickR.dx,stickR.dy)>.3){ang=Math.atan2(stickR.dy,stickR.dx);f=true}}
-  else if(!isTouch){const c=cam();ang=Math.atan2(mouse.y+c.y-me.y,mouse.x+c.x-me.x);f=mouse.down}
+  else if(!isTouch){const c=cam();ang=Math.atan2(mouse.y/Z+c.y-me.y,mouse.x/Z+c.x-me.x);f=mouse.down}
   curIn={mx,my,ang,f};
 }
 
@@ -433,7 +452,7 @@ function sfx(k,vol=.5){
 function update(dt){
   if(!me)return;
   readInput();
-  if(!me.dead&&me.wk){moveStep(me,curIn.mx,curIn.my,dt,me.wk)}
+  if(!me.dead&&me.wk){moveStep(curMap,me,curIn.mx,curIn.my,dt,me.wk)}
   me.ang=curIn.ang;
   const rt=performance.now()-100;
   for(const o of others.values())interp(o,rt);
@@ -442,7 +461,7 @@ function update(dt){
     const steps=Math.ceil(Math.hypot(b.vx,b.vy)*dt/8);
     for(let i=0;i<steps&&b.life>0;i++){
       b.x+=b.vx*dt/steps;b.y+=b.vy*dt/steps;
-      if(tile(Math.floor(b.x/T),Math.floor(b.y/T))===1){b.life=0;fx.push({k:'spark',x:b.x,y:b.y,t:.15});break}
+      if(tile(curMap,Math.floor(b.x/T),Math.floor(b.y/T))===1){b.life=0;fx.push({k:'spark',x:b.x,y:b.y,t:.15});break}
     }
     b.life-=dt;
   }
@@ -451,9 +470,12 @@ function update(dt){
   fx=fx.filter(f=>f.t>0);
   for(const f of feed)f.t-=dt;feed=feed.filter(f=>f.t>0);
 }
+// Visible world is capped (~1100x760 px) so big screens can't see the whole map.
 function cam(){
-  const x=Math.max(Math.min(me.x-W/2,MW*T-W),0),y=Math.max(Math.min(me.y-H/2,MH*T-H),0);
-  return{x:MW*T<W?(MW*T-W)/2:x,y:MH*T<H?(MH*T-H)/2:y};
+  Z=Math.max(1,W/1100,H/760);VW=W/Z;VH=H/Z;
+  const mw=curMap.w*T,mh=curMap.h*T;
+  const x=Math.max(Math.min(me.x-VW/2,mw-VW),0),y=Math.max(Math.min(me.y-VH/2,mh-VH),0);
+  return{x:mw<VW?(mw-VW)/2:x,y:mh<VH?(mh-VH)/2:y};
 }
 // Proportions measured from the reference art (body fill radius 131px = 13 game px, scale 0.099).
 // Local coords: +x is the aim direction. Each rect is [x0,x1,y0,y1] of the light-grey fill; outline adds ~1.1px outside.
@@ -475,7 +497,7 @@ function drawGun(e,k){
 const ICON={hp:'+',ammo:'≡'},ICOL={hp:'#4fc3a1',ammo:'#f2b134',w:'#9db4ff'};
 function drawPlayer(e,isMe){
   if(e.dead>0)return;
-  if(!isMe&&inBush(e)&&me&&Math.hypot(e.x-me.x,e.y-me.y)>90)return;
+  if(!isMe&&inBush(curMap,e)&&me&&Math.hypot(e.x-me.x,e.y-me.y)>90)return;
   const gk=e.wk||'pistol',color=colorOf(isMe?myId:e.id),mate=roomMode==='team'&&!isMe&&e.team===me.team;
   ctx.globalAlpha=e.inv>0?.5+.3*Math.sin(performance.now()/60):1;
   if(gk!=='shotgun')drawGun(e,gk);
@@ -495,8 +517,8 @@ function render(){
   ctx.setTransform(DPR,0,0,DPR,0,0);
   ctx.fillStyle='#0f1316';ctx.fillRect(0,0,W,H);
   if(!me){ctx.fillStyle='#8a9a99';ctx.font='500 16px "Noto Sans KR",sans-serif';ctx.textAlign='center';ctx.fillText('연결 중…',W/2,H/2);return}
-  const c=cam();ctx.save();ctx.translate(-Math.round(c.x),-Math.round(c.y));
-  const x0=Math.max(0,Math.floor(c.x/T)),y0=Math.max(0,Math.floor(c.y/T)),x1=Math.min(MW,Math.ceil((c.x+W)/T)),y1=Math.min(MH,Math.ceil((c.y+H)/T));
+  const c=cam(),grid=curMap.grid;ctx.save();ctx.setTransform(DPR*Z,0,0,DPR*Z,0,0);ctx.translate(-Math.round(c.x),-Math.round(c.y));
+  const x0=Math.max(0,Math.floor(c.x/T)),y0=Math.max(0,Math.floor(c.y/T)),x1=Math.min(curMap.w,Math.ceil((c.x+VW)/T)),y1=Math.min(curMap.h,Math.ceil((c.y+VH)/T));
   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
     const v=grid[y][x],px=x*T,py=y*T;
     if(v===1){ctx.fillStyle='#2e3a41';ctx.fillRect(px,py,T,T);ctx.fillStyle='#3a4952';ctx.fillRect(px,py,T,4)}
@@ -528,6 +550,7 @@ function render(){
     else if(f.k==='gib'){ctx.globalAlpha=f.t/.5;ctx.fillStyle=f.c;ctx.fillRect(f.x-2,f.y-2,4,4);ctx.globalAlpha=1}
   }
   ctx.restore();
+  drawMini(c);
   if(me.dead>0){
     ctx.fillStyle='rgba(15,19,22,.55)';ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#e6ece9';ctx.font='700 22px "Chakra Petch",sans-serif';ctx.fillText(`리스폰 ${Math.ceil(me.dead)}`,W/2,H/2);
@@ -536,6 +559,29 @@ function render(){
     ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(st.ox,st.oy,50,0,7);ctx.stroke();
     ctx.fillStyle=st===stickR?'rgba(242,177,52,.5)':'rgba(255,255,255,.3)';ctx.beginPath();ctx.arc(st.ox+st.dx*50,st.oy+st.dy*50,20,0,7);ctx.fill();
   }
+}
+// Minimap: walls pre-rendered once per map; shows you, teammates, and your view box. Enemies stay hidden.
+const mini=$('mini'),mctx=mini.getContext('2d');let miniBg=null;
+function drawMini(c){
+  const mw=isTouch?120:190,s=mw/curMap.w,mh=Math.round(curMap.h*s);
+  if(miniFor!==curMap.id||mini.width!==Math.round(mw*DPR)){
+    miniFor=curMap.id;mini.width=Math.round(mw*DPR);mini.height=Math.round(mh*DPR);mini.style.width=mw+'px';mini.style.height=mh+'px';
+    miniBg=document.createElement('canvas');miniBg.width=mini.width;miniBg.height=mini.height;
+    const b=miniBg.getContext('2d'),k=s*DPR;
+    for(let y=0;y<curMap.h;y++)for(let x=0;x<curMap.w;x++){
+      const v=curMap.grid[y][x];if(!v)continue;
+      b.fillStyle=v===1?'rgba(170,190,200,.75)':v===2?'rgba(160,120,70,.8)':'rgba(70,120,70,.7)';
+      b.fillRect(x*k,y*k,Math.ceil(k),Math.ceil(k));
+    }
+  }
+  mctx.setTransform(1,0,0,1,0,0);mctx.clearRect(0,0,mini.width,mini.height);mctx.drawImage(miniBg,0,0);
+  const k=s*DPR/T;
+  mctx.strokeStyle='rgba(255,255,255,.5)';mctx.lineWidth=1;mctx.strokeRect(c.x*k,c.y*k,VW*k,VH*k);
+  if(roomMode==='team')for(const o of others.values())if(o.x!==undefined&&!(o.dead>0)&&o.team===me.team){
+    mctx.fillStyle=TEAM_COL[o.team];mctx.beginPath();mctx.arc(o.x*k,o.y*k,2.5*DPR,0,7);mctx.fill();
+  }
+  if(!(me.dead>0)){mctx.fillStyle='#fff';mctx.beginPath();mctx.arc(me.x*k,me.y*k,3.5*DPR,0,7);mctx.fill();
+    mctx.strokeStyle=roomMode==='team'?TEAM_COL[me.team]:'#4fc3a1';mctx.lineWidth=1.5*DPR;mctx.stroke()}
 }
 let hudKey='';
 function hud(){
@@ -547,9 +593,14 @@ function hud(){
   $('hpTxt').textContent=me.hp;$('hpBar').style.width=me.hp+'%';
   $('hpBox').classList.toggle('low',me.hp<=30);$('ammoBox').classList.toggle('empty',me.mag===0);
   $('clock').textContent=`${m}:${String(sec).padStart(2,'0')}`;
+  $('clockBox').classList.toggle('low',clock<=30);
+  $('kills').textContent=mine?mine[2]:0;
+  $('killsGoal').textContent=roomMode==='team'?'킬':`/ ${GOAL} 킬`;
+  $('tscore').hidden=roomMode!=='team';
+  if(roomMode==='team')$('tscore').innerHTML=`<span class="b">블루 ${teamK[0]}</span> : <span class="r">${teamK[1]} 레드</span>`;
   $('score').textContent=roomMode==='team'
-    ?`블루 ${teamK[0]} : ${teamK[1]} 레드 · 목표 ${TEAM_GOAL} · 내 킬 ${mine?mine[2]:0} · ${solo?'AI':ping+'ms'}`
-    :`방 ${roomCode} · ${lobbyList.length}명 · 내 킬 ${mine?mine[2]:0}/${GOAL} · ${solo?'AI':ping+'ms'}`;
+    ?`팀 목표 ${TEAM_GOAL} · ${curMap.name} · ${solo?'AI 대전':ping+'ms'}`
+    :`${solo?'AI 대전':'방 '+roomCode} · ${lobbyList.length}명 · ${curMap.name}${solo?'':' · '+ping+'ms'}`;
   $('wName').textContent=WEAPONS[k0].name;$('mag').textContent=me.mag;$('res').textContent=me.res;
   $('slots').innerHTML=me.sl.map((x,i)=>`<span class="${i===me.cur?'on':''}">${i+1} ${WEAPONS[x].name}</span>`).join('');
   $('feed').innerHTML=feed.map(f=>`<div>${f.txt}</div>`).join('');
