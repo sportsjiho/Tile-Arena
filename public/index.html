@@ -479,10 +479,10 @@ function update(dt){
   fx=fx.filter(f=>f.t>0);
   for(const f of feed)f.t-=dt;feed=feed.filter(f=>f.t>0);
 }
-// Visible world is capped (~1100x760 px) so big screens can't see the whole map.
 function cam(){
-  const mw=curMap.w*T,mh=curMap.h*T,cw=Math.min(1100,mw*.8),ch=Math.min(760,mh*.8);
-  Z=Math.max(1,W/cw,H/ch);VW=W/Z;VH=H/Z;
+  // zoomed out: up to ~1500x1000 world px visible (phones may go below 1x), small maps still never fully visible
+  const mw=curMap.w*T,mh=curMap.h*T,cw=Math.min(1500,mw*.95),ch=Math.min(1000,mh*.95);
+  Z=Math.max(W/cw,H/ch,Math.min(1,Math.min(W,H)/560));VW=W/Z;VH=H/Z;
   const x=Math.max(Math.min(me.x-VW/2,mw-VW),0),y=Math.max(Math.min(me.y-VH/2,mh-VH),0);
   return{x:mw<VW?(mw-VW)/2:x,y:mh<VH?(mh-VH)/2:y};
 }
