@@ -101,6 +101,10 @@ tr.me td{color:var(--accent);font-weight:700}
 .seg{display:flex;gap:6px;flex:1;min-width:0}
 .seg button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:10px 0;border-radius:6px;font:700 15px var(--display);cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--accent);color:#14110a;border-color:var(--accent)}
+.seg.maps{display:grid;grid-template-columns:repeat(4,1fr)}
+.seg.maps button{font-size:13px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.seg button small{font:500 10px var(--body);opacity:.75}
+#botsRow[data-off] .seg{opacity:.4;pointer-events:none}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 .err{color:var(--enemy);font-size:13px;margin:0;min-height:1em}
 button:disabled{opacity:.5;cursor:default}
@@ -131,7 +135,7 @@ button:disabled{opacity:.5;cursor:default}
   <div class="wrap">
     <div>
       <h1>TILE <b>ARENA</b></h1>
-      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 / 팀전 20킬</p>
+      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 · 팀전 20킬 · 1:1 5승</p>
     </div>
     <div class="field">
       <label class="cap" for="nick">닉네임</label>
@@ -147,12 +151,12 @@ button:disabled{opacity:.5;cursor:default}
     <hr class="sep">
     <div class="field">
       <span class="cap">AI와 플레이</span>
-      <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
+      <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button><button aria-pressed="false" data-v="duel">1:1 결투</button></div>
       <div class="seg" id="soloDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
       <span class="cap">맵</span>
-      <div class="seg" id="soloMap"><button aria-pressed="false" data-v="warehouse">창고</button><button aria-pressed="false" data-v="forest">숲</button><button aria-pressed="false" data-v="city">도시</button><button aria-pressed="true" data-v="random">랜덤</button></div>
-      <span class="cap">봇 수</span>
-      <div class="joinrow">
+      <div class="seg maps" id="soloMap"><button aria-pressed="false" data-v="warehouse">창고<small>대</small></button><button aria-pressed="false" data-v="forest">숲<small>대</small></button><button aria-pressed="false" data-v="city">도시<small>대</small></button><button aria-pressed="false" data-v="pillars">기둥<small>중</small></button><button aria-pressed="false" data-v="pillars_s">작은 기둥<small>소</small></button><button aria-pressed="false" data-v="arena">결투장<small>소</small></button><button aria-pressed="false" data-v="maze">미로<small>소</small></button><button aria-pressed="true" data-v="random">랜덤</button></div>
+      <span class="cap" id="botsCap">봇 수</span>
+      <div class="joinrow" id="botsRow">
         <div class="seg" id="bots"><button aria-pressed="false" data-n="3">3</button><button aria-pressed="true" data-n="5">5</button><button aria-pressed="false" data-n="7">7</button></div>
         <button class="ghost" id="solo">AI 대전</button>
       </div>
@@ -169,9 +173,9 @@ button:disabled{opacity:.5;cursor:default}
     <div class="codebox"><b id="lobbyCode">----</b><button class="ghost" id="copy">링크 복사</button></div>
     <div class="field">
       <span class="cap">모드</span>
-      <div class="seg" id="lMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
+      <div class="seg" id="lMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button><button aria-pressed="false" data-v="duel">1:1 결투</button></div>
       <span class="cap">맵</span>
-      <div class="seg" id="lMap"><button aria-pressed="false" data-v="warehouse">창고</button><button aria-pressed="false" data-v="forest">숲</button><button aria-pressed="false" data-v="city">도시</button><button aria-pressed="true" data-v="random">랜덤</button></div>
+      <div class="seg maps" id="lMap"><button aria-pressed="false" data-v="warehouse">창고<small>대</small></button><button aria-pressed="false" data-v="forest">숲<small>대</small></button><button aria-pressed="false" data-v="city">도시<small>대</small></button><button aria-pressed="false" data-v="pillars">기둥<small>중</small></button><button aria-pressed="false" data-v="pillars_s">작은 기둥<small>소</small></button><button aria-pressed="false" data-v="arena">결투장<small>소</small></button><button aria-pressed="false" data-v="maze">미로<small>소</small></button><button aria-pressed="true" data-v="random">랜덤</button></div>
       <span class="cap">AI 난이도 · 나간 플레이어를 대신하는 AI</span>
       <div class="seg" id="lDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
       <p class="note" id="modeNote"></p>
@@ -191,7 +195,7 @@ button:disabled{opacity:.5;cursor:default}
 </section>
 
 <script type="module">
-import {WEAPONS,T,MUZZLE,GOAL,TEAM_GOAL,tile,inBush,moveStep,getMap,MAP_LIST} from './shared.js';
+import {WEAPONS,T,MUZZLE,GOAL,TEAM_GOAL,DUEL_GOAL,tile,inBush,moveStep,getMap,MAP_LIST} from './shared.js';
 import {Game} from './sim.js';
 
 const $=id=>document.getElementById(id);
@@ -210,7 +214,7 @@ const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
 let solo=false,local=null,localMsg=null,localClose=null,botCount=5;
 let soloMode='ffa',soloDiff='normal',roomMode='ffa',roomDiff='normal',teamK=[0,0];
-let soloMap='random',roomMap='random',curMap=getMap('warehouse'),Z=1,VW=0,VH=0,miniFor=null;
+let freeze=0,roundN=0,soloMap='random',roomMap='random',curMap=getMap('warehouse'),Z=1,VW=0,VH=0,miniFor=null;
 const MAP_NAME=Object.fromEntries([...MAP_LIST,['random','랜덤']]);
 const TEAM_NAME=['블루','레드'],TEAM_COL=['#5aa9e6','#e2574c'];
 const teamOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[5]:0};
@@ -267,7 +271,7 @@ $('toHome').onclick=()=>goHome('');
 $('again').onclick=()=>send({t:'go'});
 $('bots').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;botCount=+b.dataset.n;for(const x of $('bots').children)x.setAttribute('aria-pressed',x===b)});
 $('solo').onclick=()=>startSolo(botCount);
-seg('soloMode',v=>soloMode=v);seg('soloDiff',v=>soloDiff=v);
+seg('soloMode',v=>{soloMode=v;const d=v==='duel';$('botsCap').textContent=d?'봇 수 · 1:1은 봇 1명':'봇 수';if(d)$('botsRow').setAttribute('data-off','');else $('botsRow').removeAttribute('data-off')});seg('soloDiff',v=>soloDiff=v);
 seg('lMode',v=>send({t:'cfg',mode:v,diff:roomDiff,map:roomMap}));seg('lDiff',v=>send({t:'cfg',mode:roomMode,diff:v,map:roomMap}));
 seg('lMap',v=>send({t:'cfg',mode:roomMode,diff:roomDiff,map:v}));seg('soloMap',v=>soloMap=v);
 function stopLocal(){
@@ -278,7 +282,7 @@ function stopLocal(){
 function startSolo(n){
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
   stopLocal();audioInit();resetWorld();
-  const g=new Game();g.code='AI';g.fill=n;g.mode=soloMode;g.diff=soloDiff;g.mapSel=soloMap;local=g;solo=true;roomCode='AI';
+  const g=new Game();g.code='AI';g.fill=soloMode==='duel'?1:n;g.mode=soloMode;g.diff=soloDiff;g.mapSel=soloMap;local=g;solo=true;roomCode='AI';
   const L={};
   const fake={send(d){const m=JSON.parse(d);queueMicrotask(()=>{if(local===g)handle(m)})},addEventListener(t,f){L[t]=f},close(){}};
   localMsg=o=>L.message&&L.message({data:JSON.stringify(o)});
@@ -306,6 +310,7 @@ setInterval(()=>{if(mode==='PLAYING'&&me)send({t:'in',mx:+curIn.mx.toFixed(2),my
 function handle(m){
   switch(m.t){
     case 'w':myId=m.id;if(m.code)roomCode=m.code;break;
+    case 'round':roundN=m.n;bullets=[];break;
     case 'left':pushFeed(`<b>${esc(m.n)}</b> 이어받음`,3);break;
     case 'lobby':
       lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;roomMode=m.mode||'ffa';roomDiff=m.diff||'normal';roomMap=m.map||'random';teamK=m.tk||[0,0];renderLobby();break;
@@ -331,7 +336,7 @@ function handle(m){
 function pushFeed(txt,t){feed.unshift({txt,t});feed.length=Math.min(feed.length,4)}
 function posOf(id){return id===myId?me:others.get(id)}
 function onSnap(m){
-  const now=performance.now();clock=m.c;
+  const now=performance.now();clock=m.c;freeze=m.fz||0;roundN=m.rd||roundN;
   const moving=Math.hypot(curIn.mx,curIn.my)>.01;
   for(const[id,x,y,ang,hp,dead,inv,wk,rl,team]of m.p){
     if(id===myId){
@@ -368,7 +373,11 @@ function onShot(m){
 function onResult(m){
   lastResult=m;
   const mine=m.r.findIndex(r=>r[0]===myId)+1;
-  if(m.mode==='team'){
+  if(m.mode==='duel'){
+    const meR=m.r.find(r=>r[0]===myId)||[0,'',0],op=m.r.find(r=>r[0]!==myId)||[0,'상대',0];
+    $('rTitle').textContent=meR[2]>op[2]?'승리!':meR[2]<op[2]?'패배':'무승부';
+    $('rSub').textContent=`나 ${meR[2]} : ${op[2]} ${esc(op[1])} · `+(m.why==='time'?'제한 시간 종료':`${DUEL_GOAL}승 달성`);
+  }else if(m.mode==='team'){
     const myT=(m.r.find(r=>r[0]===myId)||[])[4];
     $('rTitle').textContent=m.win===-1?'무승부':m.win===myT?`${TEAM_NAME[m.win]} 팀 승리!`:`${TEAM_NAME[m.win]} 팀 승리`;
     $('rSub').textContent=`블루 ${m.tk[0]} : ${m.tk[1]} 레드 · `+(m.why==='time'?'제한 시간 종료':`팀 킬 ${TEAM_GOAL} 달성`)+(m.win!==-1?(m.win===myT?' · 우리 팀 승리':' · 우리 팀 패배'):'');
@@ -387,7 +396,7 @@ function renderLobby(){
   setSeg('lMode',roomMode);setSeg('lDiff',roomDiff);
   setSeg('lMap',roomMap);
   for(const id of['lMode','lDiff','lMap']){$(id).classList.toggle('ro',hostId!==myId);for(const b of $(id).children)b.disabled=hostId!==myId}
-  $('modeNote').textContent=(team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`)+` · 맵: ${MAP_NAME[roomMap]}`;
+  $('modeNote').textContent=(roomMode==='duel'?`1:1 결투. 킬이 날 때마다 둘 다 처음 자리로 돌아가 다음 라운드. ${DUEL_GOAL}승 먼저. 혼자면 AI가 상대해요.`:team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`)+` · 맵: ${MAP_NAME[roomMap]}`;
   $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot${team?' t'+p[5]:''}"></span>${team?`<small style="color:${TEAM_COL[p[5]]}">${TEAM_NAME[p[5]]}</small> `:''}${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
   const host=hostId===myId;
   $('startBtn').hidden=!host;
@@ -472,8 +481,8 @@ function update(dt){
 }
 // Visible world is capped (~1100x760 px) so big screens can't see the whole map.
 function cam(){
-  Z=Math.max(1,W/1100,H/760);VW=W/Z;VH=H/Z;
-  const mw=curMap.w*T,mh=curMap.h*T;
+  const mw=curMap.w*T,mh=curMap.h*T,cw=Math.min(1100,mw*.8),ch=Math.min(760,mh*.8);
+  Z=Math.max(1,W/cw,H/ch);VW=W/Z;VH=H/Z;
   const x=Math.max(Math.min(me.x-VW/2,mw-VW),0),y=Math.max(Math.min(me.y-VH/2,mh-VH),0);
   return{x:mw<VW?(mw-VW)/2:x,y:mh<VH?(mh-VH)/2:y};
 }
@@ -551,7 +560,13 @@ function render(){
   }
   ctx.restore();
   drawMini(c);
-  if(me.dead>0){
+  if(roomMode==='duel'&&freeze>0){
+    ctx.fillStyle='rgba(15,19,22,.35)';ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f2b134';ctx.font='700 46px "Chakra Petch",sans-serif';
+    ctx.fillText(`라운드 ${roundN}`,W/2,H/2-26);
+    ctx.fillStyle='#e6ece9';ctx.font='700 30px "Chakra Petch",sans-serif';ctx.fillText(Math.ceil(freeze)+'',W/2,H/2+22);
+  }
+  if(me.dead>0&&roomMode!=='duel'){
     ctx.fillStyle='rgba(15,19,22,.55)';ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#e6ece9';ctx.font='700 22px "Chakra Petch",sans-serif';ctx.fillText(`리스폰 ${Math.ceil(me.dead)}`,W/2,H/2);
   }
@@ -588,15 +603,17 @@ function hud(){
   if(!me||!me.sl)return;
   const k0=me.sl[me.cur],m=Math.floor(clock/60),sec=Math.floor(clock%60);
   const mine=lobbyList.find(p=>p[0]===myId),lead=Math.max(0,...lobbyList.map(p=>p[2]));
-  const key=[me.hp,m,sec,mine&&mine[2],lead,lobbyList.length,roomCode,teamK.join(),roomMode,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
+  const key=[me.hp,roundN,m,sec,mine&&mine[2],lead,lobbyList.length,roomCode,teamK.join(),roomMode,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
   if(key===hudKey)return;hudKey=key;
   $('hpTxt').textContent=me.hp;$('hpBar').style.width=me.hp+'%';
   $('hpBox').classList.toggle('low',me.hp<=30);$('ammoBox').classList.toggle('empty',me.mag===0);
   $('clock').textContent=`${m}:${String(sec).padStart(2,'0')}`;
   $('clockBox').classList.toggle('low',clock<=30);
   $('kills').textContent=mine?mine[2]:0;
-  $('killsGoal').textContent=roomMode==='team'?'킬':`/ ${GOAL} 킬`;
-  $('tscore').hidden=roomMode!=='team';
+  const opp=lobbyList.find(p=>p[0]!==myId);
+  $('killsGoal').textContent=roomMode==='team'?'킬':roomMode==='duel'?`/ ${DUEL_GOAL} 승`:`/ ${GOAL} 킬`;
+  $('tscore').hidden=roomMode==='ffa';
+  if(roomMode==='duel')$('tscore').innerHTML=`<span class="b">나 ${mine?mine[2]:0}</span> : <span class="r">${opp?opp[2]:0} ${esc(opp?opp[1]:'상대')}</span>`;
   if(roomMode==='team')$('tscore').innerHTML=`<span class="b">블루 ${teamK[0]}</span> : <span class="r">${teamK[1]} 레드</span>`;
   $('score').textContent=roomMode==='team'
     ?`팀 목표 ${TEAM_GOAL} · ${curMap.name} · ${solo?'AI 대전':ping+'ms'}`

@@ -1,5 +1,5 @@
 // Game simulation. Runs in the Durable Object for online rooms, and in the browser for AI practice.
-import {WEAPONS,MUZZLE,T,MATCH,GOAL,TEAM_GOAL,R,MAX_PLAYERS,DROP_EVERY,DROP_MAX,DROP_KINDS,tile,moveStep,los,inBush,randOpen,getMap,pickMap,MAP_LIST} from './shared.js';
+import {WEAPONS,MUZZLE,T,MATCH,GOAL,TEAM_GOAL,DUEL_GOAL,R,MAX_PLAYERS,DROP_EVERY,DROP_MAX,DROP_KINDS,tile,moveStep,los,inBush,randOpen,getMap,pickMap,MAP_LIST} from './shared.js';
 
 const TICK=30,RESPAWN=3,RESULT_SECS=6;
 const BOT_NAMES=['Fox','Rook','Vega','Moss','Juno','Kite','Ash'];
@@ -17,7 +17,7 @@ export class Game{
     this.players=new Map();this.nextId=1;this.phase='LOBBY';this.clock=MATCH;
     this.bullets=[];this.items=[];this.dropT=0;this.hostId=0;this.code='';
     this.timer=null;this.last=0;this.resultT=0;this.fill=0;this.uid=1;
-    this.mode='ffa';this.diff='normal';this.mapSel='random';this.map=getMap('warehouse');
+    this.mode='ffa';this.diff='normal';this.mapSel='random';this.freeze=0;this.round=0;this.map=getMap('warehouse');
   }
   isTeam(){return this.mode==='team'}
   foe(a,b){return a!==b&&(!this.isTeam()||a.team!==b.team)}
@@ -29,7 +29,18 @@ export class Game{
   }
   teamKills(){const k=[0,0];for(const p of this.players.values())k[p.team]+=p.kills;return k}
   humans(){return[...this.players.values()].filter(p=>!p.bot)}
+  isDuel(){return this.mode==='duel'}
+  freeDuel(){const u=new Set([...this.players.values()].map(p=>p.duelIdx));return u.has(0)?1:0}
   canJoin(){
+    if(this.isDuel()){
+      if(this.humans().length>=2)return false;
+      if(this.players.size>=2){
+        const ab=[...this.players.values()].find(p=>p.bot&&p.auto);
+        if(!ab)return false;
+        this.players.delete(ab.id);
+      }
+      return true;
+    }
     if(this.players.size<MAX_PLAYERS)return true;
     const ab=[...this.players.values()].find(p=>p.bot&&p.auto);
     if(!ab)return false;
@@ -37,7 +48,7 @@ export class Game{
   }
   newPlayer(name,ws){
     return{id:this.nextId++,name,ws,bot:false,auto:false,x:0,y:0,ang:0,hp:100,kills:0,deaths:0,dead:0,inv:0,slots:[],cur:0,cd:0,rl:0,
-      input:{mx:0,my:0,ang:0,fire:false},ai:newAi(),team:0};
+      input:{mx:0,my:0,ang:0,fire:false},ai:newAi(),team:0,duelIdx:this.freeDuel()};
   }
   addPlayer(ws,name){
     const p=this.newPlayer(name,ws);
@@ -106,7 +117,7 @@ export class Game{
       if(p.id===this.hostId&&this.phase!=='PLAYING')this.startMatch();
     }else if(m.t==='cfg'){
       if(p.id!==this.hostId||this.phase==='PLAYING')return;
-      if(m.mode==='ffa'||m.mode==='team')this.mode=m.mode;
+      if(m.mode==='ffa'||m.mode==='team'||(m.mode==='duel'&&this.humans().length<=2))this.mode=m.mode;
       if(DIFF[m.diff])this.diff=m.diff;
       if(m.map==='random'||MAP_LIST.some(x=>x[0]===m.map))this.mapSel=m.map;
       this.balance();this.broadcastLobby();
@@ -115,6 +126,11 @@ export class Game{
 
   loadout(p){p.slots=[{k:'pistol',mag:12,res:36}];p.cur=0;p.rl=0;p.cd=0}
   spawn(p){
+    if(this.isDuel()){
+      const[sx,sy]=this.map.spawns[p.duelIdx?3:0];
+      p.x=sx*T+T/2;p.y=sy*T+T/2;p.ang=p.duelIdx?Math.PI:0;p.input.ang=p.ang;
+      p.hp=100;p.dead=0;p.inv=0;this.loadout(p);p.ai.t=0;return;
+    }
     let best=null,bd=-1;
     for(const[sx,sy]of this.map.spawns){
       const x=sx*T+T/2,y=sy*T+T/2;let d=1e9;
@@ -129,6 +145,11 @@ export class Game{
     this.map=getMap(pickMap(this.mapSel));
     this.phase='PLAYING';this.clock=MATCH;this.bullets=[];this.dropT=3;this.uid=1;
     for(let i=0;i<this.fill&&this.players.size<MAX_PLAYERS;i++)this.addBot(BOT_NAMES[i%BOT_NAMES.length],false);
+    if(this.isDuel()){
+      while(this.players.size<2)this.addBot(BOT_NAMES[0],true);
+      [...this.players.values()].forEach((p,i)=>p.duelIdx=i);
+      this.round=1;this.freeze=2;
+    }else this.freeze=0;
     this.items=this.map.items.map(([type,x,y])=>({type,x:x*T+T/2,y:y*T+T/2,cool:0,uid:this.uid++}));
     this.balance();
     for(const p of this.players.values()){p.kills=0;p.deaths=0;p.input.fire=false;p.dead=0}
@@ -145,6 +166,14 @@ export class Game{
     this.all({t:'result',why:reason,mode:this.mode,tk,win,r:rank.map(p=>[p.id,p.name,p.kills,p.deaths,p.team])});
   }
 
+  // 1:1 duel: after every kill both players go back to their starting spots.
+  roundReset(){
+    this.round++;this.freeze=2;this.bullets=[];
+    for(const p of this.players.values())this.spawn(p);
+    this.items=this.items.filter(i=>!i.drop);for(const i of this.items)i.cool=0;
+    this.dropT=4;this.sendItems();
+    this.all({t:'round',n:this.round});
+  }
   reload(p){
     const s=p.slots[p.cur],w=WEAPONS[s.k];
     if(p.dead||p.rl>0||s.res<=0||s.mag>=w.mag)return;
@@ -174,7 +203,8 @@ export class Game{
       const src=this.players.get(srcId);if(src)src.kills++;
       this.all({t:'kill',by:srcId,id:v.id,bn:src?src.name:'?',vn:v.name});
       this.broadcastLobby();
-      if(this.isTeam()){if(src&&this.teamKills()[src.team]>=TEAM_GOAL)this.endMatch('goal')}
+      if(this.isDuel()){if(src&&src.kills>=DUEL_GOAL)this.endMatch('goal');else this.roundReset()}
+      else if(this.isTeam()){if(src&&this.teamKills()[src.team]>=TEAM_GOAL)this.endMatch('goal')}
       else if(src&&src.kills>=GOAL)this.endMatch('goal');
     }
   }
@@ -189,7 +219,7 @@ export class Game{
         for(const e of this.players.values()){
           if(e.id===b.owner||e.dead||b.hit.has(e.id))continue;
           if(this.isTeam()){const o=this.players.get(b.owner);if(o&&o.team===e.team)continue}
-          if((e.x-b.x)**2+(e.y-b.y)**2<R*R){b.hit.add(e.id);this.damage(e,b.dmg,b.owner);if(this.phase!=='PLAYING')return;if(!b.pierce){b.life=0;break}}
+          if((e.x-b.x)**2+(e.y-b.y)**2<R*R){b.hit.add(e.id);const rd=this.round;this.damage(e,b.dmg,b.owner);if(this.phase!=='PLAYING'||this.round!==rd)return;if(!b.pierce){b.life=0;break}}
         }
       }
       b.life-=dt;
@@ -258,8 +288,11 @@ export class Game{
       if(a.t<=0||stuck||Math.hypot(a.tx-p.x,a.ty-p.y)<20){
         const items=this.items.filter(i=>i.cool<=0&&((i.drop&&!p.slots.some(x=>x.k===i.k))||(i.type==='hp'&&p.hp<60)))
           .sort((q,r)=>Math.hypot(q.x-p.x,q.y-p.y)-Math.hypot(r.x-p.x,r.y-p.y));
-        if(items[0]&&Math.random()<D.greed){a.tx=items[0].x;a.ty=items[0].y}else[a.tx,a.ty]=randOpen(this.map);
-        a.t=5;
+        const opp=this.isDuel()&&[...this.players.values()].find(o=>o!==p&&!o.dead);
+        if(items[0]&&Math.random()<D.greed*(opp?.4:1)){a.tx=items[0].x;a.ty=items[0].y}
+        else if(opp){a.tx=opp.x;a.ty=opp.y;a.t=1.5}
+        else[a.tx,a.ty]=randOpen(this.map);
+        if(a.t<=0)a.t=5;
       }
       inp.mx=a.tx-p.x;inp.my=a.ty-p.y;
       inp.ang=Math.atan2(inp.my,inp.mx);
@@ -281,8 +314,11 @@ export class Game{
     if(this.phase!=='PLAYING')return;
     this.clock-=dt;
     if(this.clock<=0){this.clock=0;this.endMatch('time');return}
+    if(this.freeze>0)this.freeze=Math.max(0,this.freeze-dt);
+    const frozen=this.freeze>0;
     for(const p of this.players.values()){
       p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);
+      if(frozen)continue;
       if(p.rl>0){p.rl-=dt;if(p.rl<=0){const s=p.slots[p.cur],take=Math.min(WEAPONS[s.k].mag-s.mag,s.res);s.mag+=take;s.res-=take;p.rl=0}}
       if(p.dead){p.dead-=dt;if(p.dead<=0)this.spawn(p);continue}
       if(p.bot)this.botThink(p,dt);
@@ -293,13 +329,14 @@ export class Game{
     }
     this.updBullets(dt);
     if(this.phase!=='PLAYING')return;
+
     for(const it of this.items)if(it.cool>0){it.cool-=dt;if(it.cool<=0)this.sendItems()}
-    this.dropT-=dt;if(this.dropT<=0){this.dropWeapon();this.dropT=DROP_EVERY}
+    if(!frozen)this.dropT-=dt;if(this.dropT<=0){this.dropWeapon();this.dropT=DROP_EVERY}
     const ps=[...this.players.values()].map(p=>[p.id,Math.round(p.x*10)/10,Math.round(p.y*10)/10,+p.ang.toFixed(3),Math.ceil(p.hp),+p.dead.toFixed(1),p.inv>0?1:0,p.slots[p.cur].k,p.rl>0?+(p.rl/WEAPONS[p.slots[p.cur].k].reload).toFixed(2):0,p.team]);
     for(const p of this.players.values()){
       if(!p.ws)continue;
       const s=p.slots[p.cur];
-      this.send(p,{t:'s',c:+this.clock.toFixed(1),p:ps,m:{mag:s.mag,res:s.res,cur:p.cur,sl:p.slots.map(x=>x.k)}});
+      this.send(p,{t:'s',c:+this.clock.toFixed(1),fz:+this.freeze.toFixed(1),rd:this.round,p:ps,m:{mag:s.mag,res:s.res,cur:p.cur,sl:p.slots.map(x=>x.k)}});
     }
   }
 }

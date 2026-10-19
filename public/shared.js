@@ -7,11 +7,12 @@ export const WEAPONS={
 };
 export const WKEYS=['pistol','rifle','shotgun','sniper'];
 export const MUZZLE={pistol:23,rifle:31,shotgun:28,sniper:47};
-export const T=32,MATCH=180,GOAL=10,TEAM_GOAL=20,R=13,MAX_PLAYERS=8;
+export const T=32,MATCH=180,GOAL=10,TEAM_GOAL=20,DUEL_GOAL=5,R=13,MAX_PLAYERS=8;
 export const DROP_EVERY=7,DROP_MAX=6,DROP_KINDS=['rifle','shotgun','sniper'];
 
 // ---------- maps ----------  tiles: 0 floor, 1 wall, 2 crate, 3 bush
-export const MAP_LIST=[['warehouse','창고'],['forest','숲'],['city','도시']];
+// [id, name, size label]
+export const MAP_LIST=[['warehouse','창고','대'],['forest','숲','대'],['city','도시','대'],['pillars','기둥','중'],['pillars_s','작은 기둥','소'],['arena','결투장','소'],['maze','미로','소']];
 const rng=seed=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function blank(w,h){
   const g=[];for(let y=0;y<h;y++)g.push(new Array(w).fill(0));
@@ -55,6 +56,24 @@ const BUILD={
     for(let x=6;x<w-6;x++){const y=25+Math.round(Math.sin(x/6)*3);if(x%11>2)g[y][x]=1}
     return{w,h,g};
   },
+  pillars(){return pillars(56,40)},
+  pillars_s(){return pillars(36,26)},
+  arena(){
+    const w=30,h=22,g=blank(w,h);
+    rect(g,13,10,4,2,1);
+    for(const[x,y]of[[7,5],[21,5],[7,15],[21,15]])rect(g,x,y,2,2,2);
+    rect(g,4,8,1,6,1);rect(g,25,8,1,6,1);rect(g,12,4,6,1,1);rect(g,12,17,6,1,1);
+    rect(g,1,10,2,2,3);rect(g,27,10,2,2,3);rect(g,14,1,2,2,3);rect(g,14,19,2,2,3);
+    return{w,h,g};
+  },
+  maze(){
+    const w=36,h=26,g=blank(w,h),r=rng(5);
+    for(let y=4;y<h-3;y+=6)for(let x=4;x<w-3;x+=7){
+      if(r()<.5)rect(g,x,y,5,2,1);else rect(g,x,y-1,2,5,1);
+    }
+    for(let i=0;i<8;i++){const x=2+Math.floor(r()*(w-4)),y=2+Math.floor(r()*(h-4));if(g[y][x]===0)g[y][x]=2}
+    return{w,h,g};
+  },
   city(){
     const w=76,h=56,g=blank(w,h),r=rng(42);
     // building blocks separated by 4-tile streets
@@ -74,6 +93,18 @@ const BUILD={
     return{w,h,g};
   }
 };
+// Pillar layout (like the reference screenshot): 2-thick bars, L-walls and blocks, rotationally symmetric.
+function pillars(w,h){
+  const g=blank(w,h),fx=w/56,fy=h/40,X=v=>Math.round(v*fx),Y=v=>Math.round(v*fy),L=v=>Math.max(2,Math.round(v));
+  const P=[[9,4,2,9],[9,11,8,2],[17,3,2,2],[25,6,2,12],[32,11,4,4],[17,17,2,2],[4,18,4,2],[13,24,2,8],[20,26,6,2],[40,3,2,2],[46,8,2,7],[3,30,2,2]];
+  for(const[x,y,pw,ph]of P){
+    const xx=X(x),yy=Y(y),ww=pw===2?2:L(pw*fx),hh=ph===2?2:L(ph*fy);
+    rect(g,xx,yy,ww,hh,1);rect(g,w-xx-ww,h-yy-hh,ww,hh,1);
+  }
+  rect(g,Math.floor(w/2)-1,Math.floor(h/2)-1,2,2,2);
+  rect(g,X(20),Y(14),2,1,2);rect(g,w-X(20)-2,h-Y(14)-1,2,1,2);
+  return{w,h,g};
+}
 const SP=[[.05,.07],[.95,.07],[.05,.93],[.95,.93],[.5,.06],[.5,.94],[.04,.5],[.96,.5],[.28,.3],[.72,.7],[.72,.3],[.28,.7]];
 const IT=[['hp',.5,.42],['hp',.5,.58],['hp',.15,.5],['hp',.85,.5],['ammo',.22,.22],['ammo',.78,.78],['ammo',.22,.78],['ammo',.78,.22],['ammo',.5,.15],['ammo',.5,.85]];
 const cache={};
