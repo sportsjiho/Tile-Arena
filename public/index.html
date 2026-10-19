@@ -85,6 +85,10 @@ tr.me td{color:var(--accent);font-weight:700}
 .joinrow{display:flex;gap:8px}
 .joinrow input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:.3em;text-align:center;font-family:var(--display);font-size:20px}
 .joinrow button{flex:none;padding-inline:18px}
+.seg{display:flex;gap:6px;flex:1;min-width:0}
+.seg button{flex:1;background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:10px 0;border-radius:6px;font:700 15px var(--display);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:#14110a;border-color:var(--accent)}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 .err{color:var(--enemy);font-size:13px;margin:0;min-height:1em}
 button:disabled{opacity:.5;cursor:default}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -113,7 +117,7 @@ button:disabled{opacity:.5;cursor:default}
   <div class="wrap">
     <div>
       <h1>TILE <b>ARENA</b></h1>
-      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 또는 15킬</p>
+      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 또는 10킬</p>
     </div>
     <div class="field">
       <label class="cap" for="nick">닉네임</label>
@@ -126,6 +130,15 @@ button:disabled{opacity:.5;cursor:default}
     </div>
     <button class="ghost" id="quick">빠른 참가</button>
     <p class="err" id="err"></p>
+    <hr class="sep">
+    <div class="field">
+      <span class="cap">AI와 플레이 · 봇 수</span>
+      <div class="joinrow">
+        <div class="seg" id="bots"><button aria-pressed="false" data-n="3">3</button><button aria-pressed="true" data-n="5">5</button><button aria-pressed="false" data-n="7">7</button></div>
+        <button class="ghost" id="solo">AI 대전</button>
+      </div>
+      <p class="note">서버 없이 혼자 연습해요. 온라인 경기 중 누가 나가면 그 캐릭터도 AI가 이어서 플레이해요.</p>
+    </div>
     <p class="note">모두 권총으로 시작해요. 경기 중 맵에 소총·샷건·저격총이 떨어지면 먼저 줍는 사람이 가져가요.</p>
     <p class="keys"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체<br>모바일: 왼쪽 조이스틱 이동, 오른쪽 조이스틱 조준+발사</p>
   </div>
@@ -145,12 +158,13 @@ button:disabled{opacity:.5;cursor:default}
   <div class="wrap">
     <div><h1 id="rTitle">경기 종료</h1><p class="sub" id="rSub"></p></div>
     <table><thead><tr><th>#</th><th>플레이어</th><th class="n">킬</th><th class="n">데스</th></tr></thead><tbody id="rBody"></tbody></table>
-    <button class="go" id="toLobby">대기실로</button>
+    <div class="row"><button class="go" id="again">다시 하기</button><button class="ghost" id="toLobby">대기실로</button><button class="ghost" id="toHome">홈으로</button></div>
   </div>
 </section>
 
 <script type="module">
 import {WEAPONS,T,MW,MH,MUZZLE,GOAL,grid,tile,inBush,moveStep} from './shared.js';
+import {Game} from './sim.js';
 
 const $=id=>document.getElementById(id);
 const cv=$('game'),ctx=cv.getContext('2d');
@@ -166,6 +180,7 @@ let me=null,others=new Map(),bullets=[],fx=[],items=[],feed=[],clock=0,ping=0,la
 const keys={},mouse={x:0,y:0,down:false};
 const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
+let solo=false,local=null,localMsg=null,localClose=null,botCount=5;
 const nameOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[1]:'?'};
 
 // ---------- network ----------
@@ -184,15 +199,15 @@ function connect(code,create,name){
     sock.onerror=()=>{if(!settled){settled=true;reject(new Error('connect'))}};
     sock.onclose=()=>{
       if(!settled){settled=true;reject(new Error('connect'));return}
-      if(ws===sock){ws=null;if(mode!=='HOME'){goHome('연결이 끊겼어요.')}}
+      if(ws===sock){ws=null;if(mode!=='HOME'&&!solo){goHome('연결이 끊겼어요.')}}
     };
   });
 }
-const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
+const send=o=>{if(solo){if(localMsg)localMsg(o);return}if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
 const ERR={room_missing:'그런 방이 없어요. 코드를 확인해 주세요.',room_full:'방이 가득 찼어요.',connect:'서버에 연결하지 못했어요.'};
 function nick(){const n=$('nick').value.trim().slice(0,10)||'플레이어';try{localStorage.setItem('arena_nick',n)}catch(_){}return n}
 async function enter(code,create){
-  $('err').textContent='';setBusy(true);audioInit();
+  stopLocal();$('err').textContent='';setBusy(true);audioInit();
   try{await connect(code,create,nick());resetWorld();setScreen('LOBBY');history.replaceState(null,'','#'+roomCode)}
   catch(e){$('err').textContent=ERR[e.message]||ERR.connect;throw e}
   finally{setBusy(false)}
@@ -208,7 +223,27 @@ $('quick').onclick=async()=>{
   }
   $('err').textContent='빠른 참가 방이 모두 가득 찼어요. 방을 만들어 주세요.';
 };
-$('leave').onclick=()=>{const s=ws;ws=null;if(s)s.close();goHome('')};
+$('leave').onclick=()=>goHome('');
+$('toHome').onclick=()=>goHome('');
+$('again').onclick=()=>send({t:'go'});
+$('bots').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;botCount=+b.dataset.n;for(const x of $('bots').children)x.setAttribute('aria-pressed',x===b)});
+$('solo').onclick=()=>startSolo(botCount);
+function stopLocal(){
+  if(local){try{localClose&&localClose()}catch(_){}clearInterval(local.timer);local=null}
+  solo=false;localMsg=null;localClose=null;
+}
+// AI practice: run the same simulation in the page, talking to it through a loopback socket.
+function startSolo(n){
+  const s=ws;ws=null;if(s)try{s.close()}catch(_){}
+  stopLocal();audioInit();resetWorld();
+  const g=new Game();g.code='AI';g.fill=n;local=g;solo=true;roomCode='AI';
+  const L={};
+  const fake={send(d){const m=JSON.parse(d);queueMicrotask(()=>{if(local===g)handle(m)})},addEventListener(t,f){L[t]=f},close(){}};
+  localMsg=o=>L.message&&L.message({data:JSON.stringify(o)});
+  localClose=()=>L.close&&L.close();
+  g.addPlayer(fake,nick());
+  g.startMatch();
+}
 $('startBtn').onclick=()=>send({t:'go'});
 $('toLobby').onclick=()=>setScreen('LOBBY');
 $('copy').onclick=async()=>{
@@ -217,6 +252,7 @@ $('copy').onclick=async()=>{
   setTimeout(()=>$('copy').textContent='링크 복사',1500);
 };
 function goHome(msg){
+  stopLocal();
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
   me=null;others.clear();setScreen('HOME');$('err').textContent=msg||'';
 }
@@ -227,6 +263,8 @@ setInterval(()=>{if(mode==='PLAYING'&&me)send({t:'in',mx:+curIn.mx.toFixed(2),my
 
 function handle(m){
   switch(m.t){
+    case 'w':myId=m.id;if(m.code)roomCode=m.code;break;
+    case 'left':pushFeed(`<b>${esc(m.n)}</b> 이어받음`,3);break;
     case 'lobby':
       lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;renderLobby();break;
     case 'ph':
@@ -292,6 +330,7 @@ function onResult(m){
   $('rSub').textContent=m.why==='time'?'제한 시간 종료':`${esc(m.r[0][1])} 님이 ${GOAL}킬 달성`;
   $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('');
   mouse.down=false;for(const k in keys)keys[k]=false;
+  $('again').hidden=!(solo||hostId===myId);$('toLobby').hidden=solo;
   setScreen('RESULT');
 }
 function renderLobby(){

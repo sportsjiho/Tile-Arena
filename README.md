@@ -6,7 +6,8 @@
 public/index.html   client (canvas, lobby, HUD, touch controls)
 public/shared.js    map, weapons, collision, movement (used by client AND server)
 server/worker.js    routes /ws?room=CODE to a room
-server/room.js      Room Durable Object: 30Hz sim, bullets, damage, pickups, drops, match flow
+public/sim.js       game simulation + bots (runs in the Durable Object, and in the page for AI mode)
+server/room.js      Room Durable Object: WebSocket join/leave around sim.js
 wrangler.jsonc      assets + Durable Object binding
 ```
 
@@ -27,4 +28,7 @@ Durable Objects work on the Workers free plan (SQLite-backed class, already set 
 - Client sends input (`mx,my,ang,fire`) 30x/s. Server moves players, fires, resolves hits, and broadcasts snapshots 30x/s.
 - Your own character is predicted locally (same `moveStep` as the server) and only corrected on large error. Others are interpolated 100 ms behind.
 - Rooms: 방 만들기 makes a 4-letter code, 코드로 참가 joins an existing room, 빠른 참가 fills rooms Q1..Q6. Max 8 players. First player is host and starts the match.
+- AI 대전 (home screen) runs sim.js in the browser with 3/5/7 bots, no server needed.
+- If a player leaves mid-match, their character becomes a bot `<name>(AI)` until the match ends. A new player joining a full room replaces one of those bots.
+- Match ends at 10 kills or 3 minutes.
 - Tuning: weapon numbers and map are in `public/shared.js`.
