@@ -30,5 +30,7 @@ Durable Objects work on the Workers free plan (SQLite-backed class, already set 
 - Rooms: 방 만들기 makes a 4-letter code, 코드로 참가 joins an existing room, 빠른 참가 fills rooms Q1..Q6. Max 8 players. First player is host and starts the match.
 - AI 대전 (home screen) runs sim.js in the browser with 3/5/7 bots, no server needed.
 - If a player leaves mid-match, their character becomes a bot `<name>(AI)` until the match ends. A new player joining a full room replaces one of those bots.
-- Match ends at 10 kills or 3 minutes.
+- Modes: 데스매치 (first to 10 kills) or 팀전 (블루 vs 레드, first team to 20, no friendly fire). 3-minute limit either way.
+- AI difficulty 초급/중간/강함 (`DIFF` in public/sim.js): reaction time, aim noise, turn speed, sight range.
+- Online: the host picks mode and AI difficulty in the lobby.
 - Tuning: weapon numbers and map are in `public/shared.js`.

@@ -7,7 +7,7 @@ export const WEAPONS={
 };
 export const WKEYS=['pistol','rifle','shotgun','sniper'];
 export const MUZZLE={pistol:23,rifle:31,shotgun:28,sniper:47};
-export const T=32,MW=40,MH=30,MATCH=180,GOAL=10,R=13,MAX_PLAYERS=8;
+export const T=32,MW=40,MH=30,MATCH=180,GOAL=10,TEAM_GOAL=20,R=13,MAX_PLAYERS=8;
 // 1 wall, 2 crate, 3 bush
 const RECTS=[[6,5,6,1,1],[6,5,1,5,1],[28,5,6,1,1],[33,5,1,5,1],[6,24,6,1,1],[6,20,1,5,1],[28,24,6,1,1],[33,20,1,5,1],
 [18,10,4,1,1],[18,19,4,1,1],[14,13,1,4,1],[25,13,1,4,1],[19,14,2,2,2],[10,14,2,2,2],[28,14,2,2,2],[16,4,2,2,2],

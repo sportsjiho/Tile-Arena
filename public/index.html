@@ -80,6 +80,9 @@ tr.me td{color:var(--accent);font-weight:700}
 .plist li{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:15px}
 .plist li.me{border-color:var(--accent)}
 .plist .dot{width:10px;height:10px;border-radius:50%;background:var(--enemy);flex:none}
+.plist .dot.t0{background:#5aa9e6}.plist .dot.t1{background:var(--enemy)}
+.seg button:disabled{opacity:1;cursor:default}
+.seg.ro button:not([aria-pressed=true]){opacity:.45}
 .plist li.me .dot{background:var(--ally)}
 .plist .tag{margin-left:auto;font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--accent)}
 .joinrow{display:flex;gap:8px}
@@ -117,7 +120,7 @@ button:disabled{opacity:.5;cursor:default}
   <div class="wrap">
     <div>
       <h1>TILE <b>ARENA</b></h1>
-      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 또는 10킬</p>
+      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 / 팀전 20킬</p>
     </div>
     <div class="field">
       <label class="cap" for="nick">닉네임</label>
@@ -132,7 +135,10 @@ button:disabled{opacity:.5;cursor:default}
     <p class="err" id="err"></p>
     <hr class="sep">
     <div class="field">
-      <span class="cap">AI와 플레이 · 봇 수</span>
+      <span class="cap">AI와 플레이</span>
+      <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
+      <div class="seg" id="soloDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
+      <span class="cap">봇 수</span>
       <div class="joinrow">
         <div class="seg" id="bots"><button aria-pressed="false" data-n="3">3</button><button aria-pressed="true" data-n="5">5</button><button aria-pressed="false" data-n="7">7</button></div>
         <button class="ghost" id="solo">AI 대전</button>
@@ -148,6 +154,13 @@ button:disabled{opacity:.5;cursor:default}
   <div class="wrap">
     <div><h1>대기실</h1><p class="sub" id="lobbySub">친구에게 코드를 알려주세요</p></div>
     <div class="codebox"><b id="lobbyCode">----</b><button class="ghost" id="copy">링크 복사</button></div>
+    <div class="field">
+      <span class="cap">모드</span>
+      <div class="seg" id="lMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button></div>
+      <span class="cap">AI 난이도 · 나간 플레이어를 대신하는 AI</span>
+      <div class="seg" id="lDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
+      <p class="note" id="modeNote"></p>
+    </div>
     <ul class="plist" id="plist"></ul>
     <button class="go" id="startBtn">경기 시작</button>
     <button class="ghost" id="leave">나가기</button>
@@ -163,7 +176,7 @@ button:disabled{opacity:.5;cursor:default}
 </section>
 
 <script type="module">
-import {WEAPONS,T,MW,MH,MUZZLE,GOAL,grid,tile,inBush,moveStep} from './shared.js';
+import {WEAPONS,T,MW,MH,MUZZLE,GOAL,TEAM_GOAL,grid,tile,inBush,moveStep} from './shared.js';
 import {Game} from './sim.js';
 
 const $=id=>document.getElementById(id);
@@ -181,6 +194,15 @@ const keys={},mouse={x:0,y:0,down:false};
 const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
 let solo=false,local=null,localMsg=null,localClose=null,botCount=5;
+let soloMode='ffa',soloDiff='normal',roomMode='ffa',roomDiff='normal',teamK=[0,0];
+const TEAM_NAME=['블루','레드'],TEAM_COL=['#5aa9e6','#e2574c'];
+const teamOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[5]:0};
+function seg(id,cb){$(id).addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;setSeg(id,b.dataset.v);cb(b.dataset.v)})}
+function setSeg(id,v){for(const x of $(id).children)x.setAttribute('aria-pressed',x.dataset.v===v)}
+function colorOf(id){
+  if(roomMode==='team')return TEAM_COL[teamOf(id)]||TEAM_COL[0];
+  return id===myId?'#4fc3a1':'#e2574c';
+}
 const nameOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[1]:'?'};
 
 // ---------- network ----------
@@ -228,6 +250,8 @@ $('toHome').onclick=()=>goHome('');
 $('again').onclick=()=>send({t:'go'});
 $('bots').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;botCount=+b.dataset.n;for(const x of $('bots').children)x.setAttribute('aria-pressed',x===b)});
 $('solo').onclick=()=>startSolo(botCount);
+seg('soloMode',v=>soloMode=v);seg('soloDiff',v=>soloDiff=v);
+seg('lMode',v=>send({t:'cfg',mode:v,diff:roomDiff}));seg('lDiff',v=>send({t:'cfg',mode:roomMode,diff:v}));
 function stopLocal(){
   if(local){try{localClose&&localClose()}catch(_){}clearInterval(local.timer);local=null}
   solo=false;localMsg=null;localClose=null;
@@ -236,7 +260,7 @@ function stopLocal(){
 function startSolo(n){
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
   stopLocal();audioInit();resetWorld();
-  const g=new Game();g.code='AI';g.fill=n;local=g;solo=true;roomCode='AI';
+  const g=new Game();g.code='AI';g.fill=n;g.mode=soloMode;g.diff=soloDiff;local=g;solo=true;roomCode='AI';
   const L={};
   const fake={send(d){const m=JSON.parse(d);queueMicrotask(()=>{if(local===g)handle(m)})},addEventListener(t,f){L[t]=f},close(){}};
   localMsg=o=>L.message&&L.message({data:JSON.stringify(o)});
@@ -266,7 +290,7 @@ function handle(m){
     case 'w':myId=m.id;if(m.code)roomCode=m.code;break;
     case 'left':pushFeed(`<b>${esc(m.n)}</b> 이어받음`,3);break;
     case 'lobby':
-      lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;renderLobby();break;
+      lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;roomMode=m.mode||'ffa';roomDiff=m.diff||'normal';teamK=m.tk||[0,0];renderLobby();break;
     case 'ph':
       if(m.ph==='PLAYING'){clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
       break;
@@ -278,7 +302,7 @@ function handle(m){
     case 'hit':{const p=posOf(m.id);if(p)fx.push({k:'hit',x:p.x,y:p.y,t:.25});if(m.by===myId&&m.id!==myId)sfx('hit');break}
     case 'kill':{
       const p=posOf(m.id);
-      if(p)for(let i=0;i<10;i++)fx.push({k:'gib',x:p.x,y:p.y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,t:.5,c:m.id===myId?'#4fc3a1':'#e2574c'});
+      if(p)for(let i=0;i<10;i++)fx.push({k:'gib',x:p.x,y:p.y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,t:.5,c:colorOf(m.id)});
       pushFeed(`<b>${esc(m.bn)}</b> → ${esc(m.vn)}`,4);break}
     case 'pk':sfx('pick');if(WEAPONS[m.k])pushFeed(`<b>${WEAPONS[m.k].name}</b> 획득`,2.5);break;
     case 'drop':pushFeed(`<b>${WEAPONS[m.k].name}</b> 등장`,3);break;
@@ -291,10 +315,10 @@ function posOf(id){return id===myId?me:others.get(id)}
 function onSnap(m){
   const now=performance.now();clock=m.c;
   const moving=Math.hypot(curIn.mx,curIn.my)>.01;
-  for(const[id,x,y,ang,hp,dead,inv,wk,rl]of m.p){
+  for(const[id,x,y,ang,hp,dead,inv,wk,rl,team]of m.p){
     if(id===myId){
       if(!me)me={x,y,ang:0};
-      Object.assign(me,{hp,dead,inv,wk,rl});
+      Object.assign(me,{hp,dead,inv,wk,rl,team});
       const err=Math.hypot(x-me.x,y-me.y);
       if(dead>0||err>150){me.x=x;me.y=y}
       else if(!moving){me.x+=(x-me.x)*.25;me.y+=(y-me.y)*.25}
@@ -303,7 +327,7 @@ function onSnap(m){
     }else{
       let o=others.get(id);if(!o){o={id,snaps:[]};others.set(id,o)}
       o.snaps.push({t:now,x,y,ang});if(o.snaps.length>12)o.snaps.shift();
-      Object.assign(o,{hp,dead,inv,wk,rl});
+      Object.assign(o,{hp,dead,inv,wk,rl,team});
     }
   }
   const ids=new Set(m.p.map(a=>a[0]));for(const id of others.keys())if(!ids.has(id))others.delete(id);
@@ -326,16 +350,26 @@ function onShot(m){
 function onResult(m){
   lastResult=m;
   const mine=m.r.findIndex(r=>r[0]===myId)+1;
-  $('rTitle').textContent=mine===1?'1위 승리':`${mine}위`;
-  $('rSub').textContent=m.why==='time'?'제한 시간 종료':`${esc(m.r[0][1])} 님이 ${GOAL}킬 달성`;
-  $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('');
+  if(m.mode==='team'){
+    const myT=(m.r.find(r=>r[0]===myId)||[])[4];
+    $('rTitle').textContent=m.win===-1?'무승부':m.win===myT?`${TEAM_NAME[m.win]} 팀 승리!`:`${TEAM_NAME[m.win]} 팀 승리`;
+    $('rSub').textContent=`블루 ${m.tk[0]} : ${m.tk[1]} 레드 · `+(m.why==='time'?'제한 시간 종료':`팀 킬 ${TEAM_GOAL} 달성`)+(m.win!==-1?(m.win===myT?' · 우리 팀 승리':' · 우리 팀 패배'):'');
+  }else{
+    $('rTitle').textContent=mine===1?'1위 승리':`${mine}위`;
+    $('rSub').textContent=m.why==='time'?'제한 시간 종료':`${esc(m.r[0][1])} 님이 ${GOAL}킬 달성`;
+  }
+  $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${m.mode==='team'?`<span style="color:${TEAM_COL[r[4]]}">●</span> `:''}${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('');
   mouse.down=false;for(const k in keys)keys[k]=false;
   $('again').hidden=!(solo||hostId===myId);$('toLobby').hidden=solo;
   setScreen('RESULT');
 }
 function renderLobby(){
   $('lobbyCode').textContent=roomCode;
-  $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot"></span>${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
+  const team=roomMode==='team';
+  setSeg('lMode',roomMode);setSeg('lDiff',roomDiff);
+  for(const id of['lMode','lDiff']){$(id).classList.toggle('ro',hostId!==myId);for(const b of $(id).children)b.disabled=hostId!==myId}
+  $('modeNote').textContent=team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`;
+  $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot${team?' t'+p[5]:''}"></span>${team?`<small style="color:${TEAM_COL[p[5]]}">${TEAM_NAME[p[5]]}</small> `:''}${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
   const host=hostId===myId;
   $('startBtn').hidden=!host;
   $('lobbySub').textContent=host?`${lobbyList.length}명 참가 중 · 준비되면 시작하세요`:'방장이 시작하길 기다리는 중';
@@ -442,17 +476,18 @@ const ICON={hp:'+',ammo:'≡'},ICOL={hp:'#4fc3a1',ammo:'#f2b134',w:'#9db4ff'};
 function drawPlayer(e,isMe){
   if(e.dead>0)return;
   if(!isMe&&inBush(e)&&me&&Math.hypot(e.x-me.x,e.y-me.y)>90)return;
-  const gk=e.wk||'pistol',color=isMe?'#4fc3a1':'#e2574c';
+  const gk=e.wk||'pistol',color=colorOf(isMe?myId:e.id),mate=roomMode==='team'&&!isMe&&e.team===me.team;
   ctx.globalAlpha=e.inv>0?.5+.3*Math.sin(performance.now()/60):1;
   if(gk!=='shotgun')drawGun(e,gk);
   ctx.fillStyle=color;ctx.beginPath();ctx.arc(e.x,e.y,13.95,0,7);ctx.fill();
   ctx.strokeStyle='#000';ctx.lineWidth=2.1;ctx.stroke();
+  if(isMe&&roomMode==='team'){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(e.x,e.y,9,0,7);ctx.stroke()}
   if(gk==='shotgun')drawGun(e,gk);
   ctx.globalAlpha=1;
   if(!isMe){
     ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(e.x-14,e.y-24,28,3);
-    ctx.fillStyle='#e2574c';ctx.fillRect(e.x-14,e.y-24,28*e.hp/100,3);
-    ctx.fillStyle='#8a9a99';ctx.font='500 10px "Noto Sans KR",sans-serif';ctx.fillText(nameOf(e.id),e.x,e.y-32);
+    ctx.fillStyle=mate?TEAM_COL[0]:'#e2574c';ctx.fillRect(e.x-14,e.y-24,28*e.hp/100,3);
+    ctx.fillStyle=mate?'#cfe3f5':'#8a9a99';ctx.font='500 10px "Noto Sans KR",sans-serif';ctx.fillText(nameOf(e.id),e.x,e.y-32);
   }
   if(e.rl>0){ctx.strokeStyle='#f2b134';ctx.lineWidth=2;ctx.beginPath();ctx.arc(e.x,e.y,18,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-e.rl));ctx.stroke()}
 }
@@ -507,12 +542,14 @@ function hud(){
   if(!me||!me.sl)return;
   const k0=me.sl[me.cur],m=Math.floor(clock/60),sec=Math.floor(clock%60);
   const mine=lobbyList.find(p=>p[0]===myId),lead=Math.max(0,...lobbyList.map(p=>p[2]));
-  const key=[me.hp,m,sec,mine&&mine[2],lead,lobbyList.length,roomCode,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
+  const key=[me.hp,m,sec,mine&&mine[2],lead,lobbyList.length,roomCode,teamK.join(),roomMode,k0,me.mag,me.res,me.cur,me.sl.join(),ping,feed.map(f=>f.txt).join()].join('|');
   if(key===hudKey)return;hudKey=key;
   $('hpTxt').textContent=me.hp;$('hpBar').style.width=me.hp+'%';
   $('hpBox').classList.toggle('low',me.hp<=30);$('ammoBox').classList.toggle('empty',me.mag===0);
   $('clock').textContent=`${m}:${String(sec).padStart(2,'0')}`;
-  $('score').textContent=`방 ${roomCode} · ${lobbyList.length}명 · 내 킬 ${mine?mine[2]:0}/${GOAL} · ${ping}ms`;
+  $('score').textContent=roomMode==='team'
+    ?`블루 ${teamK[0]} : ${teamK[1]} 레드 · 목표 ${TEAM_GOAL} · 내 킬 ${mine?mine[2]:0} · ${solo?'AI':ping+'ms'}`
+    :`방 ${roomCode} · ${lobbyList.length}명 · 내 킬 ${mine?mine[2]:0}/${GOAL} · ${solo?'AI':ping+'ms'}`;
   $('wName').textContent=WEAPONS[k0].name;$('mag').textContent=me.mag;$('res').textContent=me.res;
   $('slots').innerHTML=me.sl.map((x,i)=>`<span class="${i===me.cur?'on':''}">${i+1} ${WEAPONS[x].name}</span>`).join('');
   $('feed').innerHTML=feed.map(f=>`<div>${f.txt}</div>`).join('');
