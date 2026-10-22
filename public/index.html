@@ -43,10 +43,10 @@ kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;pa
 .top>.feed{position:absolute;right:0;top:100%;margin-top:8px}
 .top>.clock{position:absolute;left:50%;top:0;transform:translateX(-50%)}
 .top>.feed{top:0;margin-top:0}
-.hp{width:min(300px,50vw);display:flex;flex-direction:column;gap:6px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
-.hp span{font-size:72px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums}
-.hp span small{font-size:22px;color:var(--muted);font-weight:500;margin-left:6px}
-.hp .bar{height:20px;border-radius:4px;background:rgba(255,255,255,.14)}
+.hp{width:min(460px,38vw);display:flex;flex-direction:column;gap:8px;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+.hp span{font-size:92px;font-weight:700;line-height:.95;font-variant-numeric:tabular-nums}
+.hp span small{font-size:28px;color:var(--muted);font-weight:500;margin-left:6px}
+.hp .bar{height:34px;border-radius:6px;background:rgba(255,255,255,.14);border:2px solid rgba(0,0,0,.55);box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .hp.low span{color:var(--enemy)}.hp.low .bar i{background:var(--enemy)}
 .hp .bar i{background:var(--ally);transition:width .15s}
 .clock{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -69,7 +69,7 @@ kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;pa
 .ammo.empty .a span{color:var(--enemy)}
 .ammo .w{font-size:18px}
 .ammo .slots span{font-size:13px;padding:2px 8px}
-@media (max-width:600px){.top>.clock{left:auto;right:0;transform:none;align-items:flex-end;text-align:right}.hp{width:46vw}.hp span{font-size:52px}.ammo .a{font-size:60px}.ammo .a small{font-size:22px}.clock #clock{font-size:42px}.kills b{font-size:34px}.kills small{font-size:15px}.tscore{font-size:18px}}
+@media (max-width:600px){.top>.clock{left:auto;right:0;transform:none;align-items:flex-end;text-align:right}.hp{width:52vw}.hp span{font-size:60px}.hp .bar{height:24px}.ammo .a{font-size:60px}.ammo .a small{font-size:22px}.clock #clock{font-size:42px}.kills b{font-size:34px}.kills small{font-size:15px}.tscore{font-size:18px}}
 .slots{display:flex;gap:4px;justify-content:flex-start;margin-top:4px}
 .slots span{font-size:10px;padding:1px 5px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
 .slots span.on{border-color:var(--accent);color:var(--accent)}
