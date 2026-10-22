@@ -196,7 +196,7 @@ button:disabled{opacity:.5;cursor:default}
 <div id="hud" hidden>
   <div class="top">
     <div class="hp" id="hpBox"><span><b id="hpTxt">100</b><small>HP</small></span><div class="bar"><i id="hpBar" style="width:100%"></i></div></div>
-    <div class="clock" id="clockBox"><span id="clock">3:00</span><div class="tscore" id="tscore" hidden></div><div class="kills"><b id="kills">0</b><small id="killsGoal">/ 10 킬</small></div><small class="info" id="score"></small></div>
+    <div class="clock" id="clockBox"><span id="clock">3:00</span><div class="tscore" id="tscore" hidden></div><div class="kills"><b id="kills">0</b><small id="killsGoal">/ 10 킬</small></div><small class="info" id="score"></small><small class="info" id="dmgTot">피해 0</small></div>
     <div class="feed" id="feed"></div>
   </div>
   <div class="ammo" id="ammoBox">
@@ -314,7 +314,7 @@ button:disabled{opacity:.5;cursor:default}
 <section class="screen menu" id="result" hidden>
   <div class="wrap">
     <div class="phead"><div class="eyebrow">RESULT</div><h1 id="rTitle">경기 종료</h1><p class="sub" id="rSub"></p></div>
-    <table><thead><tr><th>#</th><th>플레이어</th><th class="n">킬</th><th class="n">데스</th></tr></thead><tbody id="rBody"></tbody></table>
+    <table><thead><tr><th>#</th><th>플레이어</th><th class="n">킬</th><th class="n">데스</th><th class="n">피해량</th></tr></thead><tbody id="rBody"></tbody></table>
     <div class="row"><button class="go" id="again">다시 하기</button><button class="ghost" id="toLobby">대기실로</button><button class="ghost" id="toHome">홈으로</button></div>
   </div>
 </section>
@@ -333,7 +333,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 
 // ---------- state ----------
 let mode='HOME',ws=null,myId=0,hostId=0,roomCode='',lobbyList=[];
-let me=null,others=new Map(),bullets=[],fx=[],items=[],feed=[],clock=0,ping=0,lastResult=null;
+let myDmg=0;let me=null,others=new Map(),bullets=[],fx=[],items=[],feed=[],clock=0,ping=0,lastResult=null;
 const keys={},mouse={x:0,y:0,down:false};
 const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
@@ -496,14 +496,15 @@ function handle(m){
     case 'lobby':
       lobbyList=m.p;hostId=m.host;if(m.code)roomCode=m.code;roomMode=m.mode||'ffa';roomDiff=m.diff||'normal';roomMap=m.map||'random';teamK=m.tk||[0,0];renderLobby();break;
     case 'ph':
-      if(m.ph==='PLAYING'){curMap=getMap(m.map);if(m.mode)roomMode=m.mode;clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
+      if(m.ph==='PLAYING'){myDmg=0;$('dmgTot').textContent='피해 0';curMap=getMap(m.map);if(m.mode)roomMode=m.mode;clock=m.c||0;bullets=[];fx=[];feed=[];me=null;others.clear();hudKey='';setScreen('PLAYING')}
       break;
     case 's':onSnap(m);break;
     case 'items':{
       const old=new Map(items.map(i=>[i.uid,i]));
       items=m.l.map(([type,k,x,y,av,drop,uid])=>({type,k,x,y,av,drop,uid,born:old.has(uid)?old.get(uid).born:performance.now()}));break}
     case 'sh':onShot(m);break;
-    case 'hit':{const p=posOf(m.id);if(p)fx.push({k:'hit',x:p.x,y:p.y,t:.25});if(m.by===myId&&m.id!==myId)sfx('hit');break}
+    case 'hit':{const p=posOf(m.id);if(p)fx.push({k:'hit',x:p.x,y:p.y,t:.25});
+      if(p&&m.d>0&&(m.by===myId||m.id===myId)){const out=m.by===myId&&m.id!==myId;fx.push({k:'dmg',x:p.x+(Math.random()-.5)*14,y:p.y-18,t:.9,d:m.d,out});if(out){myDmg+=m.d;$('dmgTot').textContent='피해 '+myDmg}}if(m.by===myId&&m.id!==myId)sfx('hit');break}
     case 'kill':{
       const p=posOf(m.id);
       if(p)for(let i=0;i<10;i++)fx.push({k:'gib',x:p.x,y:p.y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,t:.5,c:colorOf(m.id)});
@@ -566,7 +567,7 @@ function onResult(m){
     $('rTitle').textContent=mine===1?'1위 승리':`${mine}위`;
     $('rSub').textContent=m.why==='time'?'제한 시간 종료':`${esc(m.r[0][1])} 님이 ${GOAL}킬 달성`;
   }
-  $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${m.mode==='team'?`<span style="color:${TEAM_COL[r[4]]}">●</span> `:''}${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td></tr>`).join('');
+  $('rBody').innerHTML=m.r.map((r,i)=>`<tr class="${r[0]===myId?'me':''}"><td>${i+1}</td><td>${m.mode==='team'?`<span style="color:${TEAM_COL[r[4]]}">●</span> `:''}${esc(r[1])}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td><td class="n">${r[5]||0}</td></tr>`).join('');
   mouse.down=false;for(const k in keys)keys[k]=false;
   $('again').hidden=!(solo||hostId===myId);$('toLobby').hidden=solo;
   setScreen('RESULT');
@@ -737,6 +738,7 @@ function render(){
     if(f.k==='flash'){ctx.fillStyle='rgba(255,220,140,.9)';ctx.beginPath();ctx.arc(f.x,f.y,6,0,7);ctx.fill()}
     else if(f.k==='spark'){ctx.fillStyle='rgba(242,177,52,'+f.t/.15+')';ctx.fillRect(f.x-2,f.y-2,4,4)}
     else if(f.k==='hit'){ctx.strokeStyle='rgba(255,255,255,'+f.t/.25+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x,f.y,16+(.25-f.t)*40,0,7);ctx.stroke()}
+    else if(f.k==='dmg'){const a=Math.min(1,f.t/.35),sz=f.d>=50?26:f.d>=25?21:17;ctx.globalAlpha=a;ctx.font='700 '+sz+'px "Chakra Petch",sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.7)';ctx.fillStyle=f.out?'#f2b134':'#e2574c';const yy=f.y-(.9-f.t)*50,tx=(f.out?'':'-')+f.d;ctx.strokeText(tx,f.x,yy);ctx.fillText(tx,f.x,yy);ctx.globalAlpha=1;ctx.textAlign='left'}
     else if(f.k==='gib'){ctx.globalAlpha=f.t/.5;ctx.fillStyle=f.c;ctx.fillRect(f.x-2,f.y-2,4,4);ctx.globalAlpha=1}
   }
   ctx.restore();

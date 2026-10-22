@@ -47,7 +47,7 @@ export class Game{
     this.players.delete(ab.id);return true;
   }
   newPlayer(name,ws){
-    return{id:this.nextId++,name,ws,bot:false,auto:false,x:0,y:0,ang:0,hp:100,kills:0,deaths:0,dead:0,inv:0,slots:[],cur:0,cd:0,rl:0,
+    return{id:this.nextId++,name,ws,bot:false,auto:false,x:0,y:0,ang:0,hp:100,kills:0,deaths:0,dmg:0,dead:0,inv:0,slots:[],cur:0,cd:0,rl:0,
       input:{mx:0,my:0,ang:0,fire:false},ai:newAi(),team:0,duelIdx:this.freeDuel()};
   }
   addPlayer(ws,name,uid=null){
@@ -152,7 +152,7 @@ export class Game{
     }else this.freeze=0;
     this.items=this.map.items.map(([type,x,y])=>({type,x:x*T+T/2,y:y*T+T/2,cool:0,uid:this.uid++}));
     this.balance();this.humansAtStart=this.humans().length;
-    for(const p of this.players.values()){p.kills=0;p.deaths=0;p.input.fire=false;p.dead=0}
+    for(const p of this.players.values()){p.kills=0;p.deaths=0;p.dmg=0;p.input.fire=false;p.dead=0}
     for(const p of this.players.values())this.spawn(p);
     this.all({t:'ph',ph:'PLAYING',c:this.clock,mode:this.mode,map:this.map.id});
     this.sendItems();
@@ -163,7 +163,7 @@ export class Game{
     this.phase='RESULT';this.resultT=RESULT_SECS;this.bullets=[];
     const rank=[...this.players.values()].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths);
     const tk=this.teamKills(),win=this.isTeam()?(tk[0]===tk[1]?-1:tk[0]>tk[1]?0:1):null;
-    this.all({t:'result',why:reason,mode:this.mode,tk,win,r:rank.map(p=>[p.id,p.name,p.kills,p.deaths,p.team])});
+    this.all({t:'result',why:reason,mode:this.mode,tk,win,r:rank.map(p=>[p.id,p.name,p.kills,p.deaths,p.team,Math.round(p.dmg)])});
     const top=rank[0];
     this.onResult?.(rank.filter(p=>!p.bot).map(p=>({uid:p.uid,kills:p.kills,deaths:p.deaths,
       win:this.isTeam()?win===p.team:(p===top&&p.kills>0&&(!rank[1]||rank[1].kills<p.kills))})));
@@ -199,8 +199,10 @@ export class Game{
   }
   damage(v,dmg,srcId){
     if(v.dead||v.inv>0)return;
+    const d=Math.max(0,Math.min(dmg,v.hp));
     v.hp-=dmg;
-    this.all({t:'hit',id:v.id,by:srcId});
+    const so=this.players.get(srcId);if(so&&so!==v)so.dmg+=d;
+    this.all({t:'hit',id:v.id,by:srcId,d:Math.round(d)});
     if(v.hp<=0){
       v.hp=0;v.dead=RESPAWN;v.deaths++;
       const src=this.players.get(srcId);if(src)src.kills++;
