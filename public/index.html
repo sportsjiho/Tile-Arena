@@ -867,7 +867,7 @@ function setScreen(m){
 try{const n=localStorage.getItem('arena_nick');if(n)$('nick').value=n}catch(_){}
 const h=location.hash.slice(1).toUpperCase().replace(/[^A-Z0-9]/g,'');
 if(h)$('code').value=h;
-setScreen(h?'ONLINE':'HOME');
+setScreen('HOME');addEventListener('pageshow',e=>{if(e.persisted&&mode!=='PLAYING')setScreen('HOME')});
 </script>
 </body>
 </html>
