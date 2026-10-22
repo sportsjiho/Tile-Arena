@@ -50,8 +50,8 @@ export class Game{
     return{id:this.nextId++,name,ws,bot:false,auto:false,x:0,y:0,ang:0,hp:100,kills:0,deaths:0,dead:0,inv:0,slots:[],cur:0,cd:0,rl:0,
       input:{mx:0,my:0,ang:0,fire:false},ai:newAi(),team:0,duelIdx:this.freeDuel()};
   }
-  addPlayer(ws,name){
-    const p=this.newPlayer(name,ws);
+  addPlayer(ws,name,uid=null){
+    const p=this.newPlayer(name,ws);p.uid=uid;
     p.team=this.smallerTeam();
     this.players.set(p.id,p);
     const host=this.players.get(this.hostId);
@@ -80,7 +80,7 @@ export class Game{
     const rest=this.humans().filter(h=>h.id!==p.id);
     if(!rest.length){this.shutdown();return}
     if(this.phase==='PLAYING'){
-      p.bot=true;p.auto=true;p.ws=null;p.name=p.name+'(AI)';p.ai=newAi();
+      p.bot=true;p.auto=true;p.ws=null;p.uid=null;p.name=p.name+'(AI)';p.ai=newAi();
       p.input={mx:0,my:0,ang:p.ang,fire:false};
       this.all({t:'left',n:p.name});
     }else this.players.delete(p.id);
@@ -151,7 +151,7 @@ export class Game{
       this.round=1;this.freeze=2;
     }else this.freeze=0;
     this.items=this.map.items.map(([type,x,y])=>({type,x:x*T+T/2,y:y*T+T/2,cool:0,uid:this.uid++}));
-    this.balance();
+    this.balance();this.humansAtStart=this.humans().length;
     for(const p of this.players.values()){p.kills=0;p.deaths=0;p.input.fire=false;p.dead=0}
     for(const p of this.players.values())this.spawn(p);
     this.all({t:'ph',ph:'PLAYING',c:this.clock,mode:this.mode,map:this.map.id});
@@ -164,6 +164,9 @@ export class Game{
     const rank=[...this.players.values()].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths);
     const tk=this.teamKills(),win=this.isTeam()?(tk[0]===tk[1]?-1:tk[0]>tk[1]?0:1):null;
     this.all({t:'result',why:reason,mode:this.mode,tk,win,r:rank.map(p=>[p.id,p.name,p.kills,p.deaths,p.team])});
+    const top=rank[0];
+    this.onResult?.(rank.filter(p=>!p.bot).map(p=>({uid:p.uid,kills:p.kills,deaths:p.deaths,
+      win:this.isTeam()?win===p.team:(p===top&&p.kills>0&&(!rank[1]||rank[1].kills<p.kills))})));
   }
 
   // 1:1 duel: after every kill both players go back to their starting spots.

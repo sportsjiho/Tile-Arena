@@ -105,6 +105,12 @@ tr.me td{color:var(--accent);font-weight:700}
 .seg.maps button{font-size:13px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:1px}
 .seg button small{font:500 10px var(--body);opacity:.75}
 #botsRow[data-off] .seg{opacity:.4;pointer-events:none}
+.acct{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:44px}
+.acct .who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.acct .who b{font-family:var(--display);font-size:17px}
+.acct .who small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.acct .mini-btn{flex:none;background:transparent;border:1px solid var(--line);color:var(--fg);border-radius:5px;padding:7px 10px;font:500 13px var(--body);cursor:pointer}
+.nickrow{display:flex;gap:8px}.nickrow input{flex:1;min-width:0}.nickrow button{flex:none}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 .err{color:var(--enemy);font-size:13px;margin:0;min-height:1em}
 button:disabled{opacity:.5;cursor:default}
@@ -137,9 +143,16 @@ button:disabled{opacity:.5;cursor:default}
       <h1>TILE <b>ARENA</b></h1>
       <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 · 팀전 20킬 · 1:1 5승</p>
     </div>
+    <div class="acct" id="acct" hidden>
+      <div class="who" id="acctWho"><small>Google 계정으로 로그인하면 기록과 랭킹이 저장돼요.</small></div>
+      <div id="gbtn"></div>
+      <button class="mini-btn" id="rankBtn">랭킹</button>
+      <button class="mini-btn" id="logoutBtn" hidden>로그아웃</button>
+    </div>
     <div class="field">
       <label class="cap" for="nick">닉네임</label>
-      <input type="text" id="nick" maxlength="10" value="플레이어" autocomplete="off">
+      <div class="nickrow"><input type="text" id="nick" maxlength="10" value="플레이어" autocomplete="off"><button class="ghost" id="saveNick" hidden>저장</button></div>
+      <p class="err" id="nickMsg" hidden></p>
     </div>
     <button class="go" id="create">방 만들기</button>
     <div class="field">
@@ -183,6 +196,14 @@ button:disabled{opacity:.5;cursor:default}
     <ul class="plist" id="plist"></ul>
     <button class="go" id="startBtn">경기 시작</button>
     <button class="ghost" id="leave">나가기</button>
+  </div>
+</section>
+
+<section class="screen" id="rank" hidden>
+  <div class="wrap">
+    <div><h1>랭킹</h1><p class="sub">로그인한 플레이어끼리 2명 이상 참가한 온라인 경기만 집계해요.</p></div>
+    <table><thead><tr><th>#</th><th>닉네임</th><th class="n">승</th><th class="n">판</th><th class="n">킬</th><th class="n">K/D</th></tr></thead><tbody id="rankBody"></tbody></table>
+    <button class="ghost" id="rankBack">돌아가기</button>
   </div>
 </section>
 
@@ -248,6 +269,49 @@ function connect(code,create,name){
 }
 const send=o=>{if(solo){if(localMsg)localMsg(o);return}if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
 const ERR={room_missing:'그런 방이 없어요. 코드를 확인해 주세요.',room_full:'방이 가득 찼어요.',connect:'서버에 연결하지 못했어요.'};
+// ---------- account (Google login) ----------
+let account=null;
+const kd=(k,d)=>(d?k/d:k).toFixed(2);
+async function apiGet(p){try{const r=await fetch(p,{credentials:'same-origin'});return r.ok?await r.json():null}catch(_){return null}}
+async function apiPost(p,b){try{const r=await fetch(p,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(b||{})});return{ok:r.ok,data:await r.json().catch(()=>({}))}}catch(_){return{ok:false,data:{error:'서버에 연결하지 못했어요.'}}}}
+function renderAccount(){
+  const u=account;
+  $('logoutBtn').hidden=!u;$('gbtn').hidden=!!u;$('saveNick').hidden=!u;
+  $('acctWho').innerHTML=u?`<b>${esc(u.nick)}</b><small>${u.games}판 · ${u.wins}승 · ${u.kills}킬 · K/D ${kd(u.kills,u.deaths)}</small>`
+    :'<small>Google 계정으로 로그인하면 기록과 랭킹이 저장돼요.</small>';
+  if(u)$('nick').value=u.nick;
+}
+async function initAccount(){
+  const cfg=await apiGet('/api/config');
+  if(!cfg)return; // running without the server (e.g. opened as a file)
+  $('acct').hidden=false;
+  const me0=await apiGet('/api/me');account=me0&&me0.user;renderAccount();
+  if(!cfg.clientId){$('gbtn').innerHTML='<small style="color:var(--muted)">Google 로그인 준비 중</small>';return}
+  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
+  sc.onload=()=>{
+    google.accounts.id.initialize({client_id:cfg.clientId,callback:async res=>{
+      const r=await apiPost('/api/login',{credential:res.credential});
+      if(r.ok){account=r.data.user;renderAccount()}else{$('err').textContent=r.data.error||'로그인에 실패했어요.'}
+    }});
+    google.accounts.id.renderButton($('gbtn'),{theme:'filled_black',size:'medium',text:'signin_with',shape:'pill',locale:'ko'});
+  };
+  document.head.appendChild(sc);
+}
+$('logoutBtn').onclick=async()=>{await apiPost('/api/logout');account=null;renderAccount();try{google.accounts.id.disableAutoSelect()}catch(_){}};
+$('saveNick').onclick=async()=>{
+  const r=await apiPost('/api/nick',{nick:$('nick').value.trim()});
+  $('nickMsg').hidden=false;
+  if(r.ok){account=r.data.user;renderAccount();$('nickMsg').style.color='var(--ally)';$('nickMsg').textContent='닉네임을 저장했어요.'}
+  else{$('nickMsg').style.color='';$('nickMsg').textContent=r.data.error||'저장하지 못했어요.'}
+};
+$('rankBtn').onclick=async()=>{
+  setScreen('RANK');$('rankBody').innerHTML='<tr><td colspan="6">불러오는 중…</td></tr>';
+  const r=await apiGet('/api/rank'),top=(r&&r.top)||[];
+  $('rankBody').innerHTML=top.length?top.map((u,i)=>`<tr class="${account&&u.nick===account.nick?'me':''}"><td>${i+1}</td><td>${esc(u.nick)}</td><td class="n">${u.wins}</td><td class="n">${u.games}</td><td class="n">${u.kills}</td><td class="n">${kd(u.kills,u.deaths)}</td></tr>`).join('')
+    :'<tr><td colspan="6">아직 기록이 없어요. 친구와 온라인 경기를 해 보세요.</td></tr>';
+};
+$('rankBack').onclick=()=>setScreen('HOME');
+initAccount();
 function nick(){const n=$('nick').value.trim().slice(0,10)||'플레이어';try{localStorage.setItem('arena_nick',n)}catch(_){}return n}
 async function enter(code,create){
   stopLocal();$('err').textContent='';setBusy(true);audioInit();
@@ -300,7 +364,8 @@ $('copy').onclick=async()=>{
 function goHome(msg){
   stopLocal();
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
-  me=null;others.clear();setScreen('HOME');$('err').textContent=msg||'';
+  me=null;others.clear();setScreen('HOME');
+  if(account)apiGet('/api/me').then(r=>{if(r&&r.user){account=r.user;renderAccount()}});$('err').textContent=msg||'';
 }
 function resetWorld(){me=null;others.clear();bullets=[];fx=[];items=[];feed=[];lobbyList=[];lastResult=null}
 
@@ -633,7 +698,7 @@ requestAnimationFrame(frame);
 // ---------- screens ----------
 function setScreen(m){
   mode=m;
-  $('home').hidden=m!=='HOME';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
+  $('rank').hidden=m!=='RANK';$('home').hidden=m!=='HOME';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
   $('bReload').hidden=$('bSwap').hidden=!isTouch;
   document.body.classList.toggle('touch',isTouch);
   if(isTouch){

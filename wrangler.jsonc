@@ -3,6 +3,14 @@
   "main": "server/worker.js",
   "compatibility_date": "2026-10-01",
   "assets": { "directory": "./public" },
-  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "Room" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+  "durable_objects": { "bindings": [
+    { "name": "ROOM", "class_name": "Room" },
+    { "name": "ACCOUNTS", "class_name": "Accounts" }
+  ] },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Room"] },
+    { "tag": "v2", "new_sqlite_classes": ["Accounts"] }
+  ],
+  // Google OAuth Client ID (public, not a secret). Empty = login button hidden.
+  "vars": { "GOOGLE_CLIENT_ID": "" }
 }

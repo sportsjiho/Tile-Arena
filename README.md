@@ -36,3 +36,10 @@ Durable Objects work on the Workers free plan (SQLite-backed class, already set 
 - Online: the host picks mode and AI difficulty in the lobby.
 - Maps: 창고 70x50, 숲 72x52, 도시 76x56 (대), 기둥 56x40 (중), 작은 기둥 36x26, 결투장 30x22, 미로 36x26 (소), or 랜덤 (built in public/shared.js `BUILD`). The camera caps the visible area, so you never see the whole map; the minimap (bottom-right) shows walls, you, teammates and your view box, never enemies.
 - Tuning: weapon numbers and map are in `public/shared.js`.
+
+## Google login (optional)
+1. Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID → Web application.
+2. Authorized JavaScript origins: your game URL, e.g. `https://tile-arena.<sub>.workers.dev`.
+3. Put the Client ID in `wrangler.jsonc` → `vars.GOOGLE_CLIENT_ID` and deploy.
+
+Accounts live in the `Accounts` Durable Object (SQLite): Google `sub`, unique nickname, games/wins/kills/deaths, sessions (HttpOnly cookie, 30 days). Email is not stored. Stats count only online matches that started with 2+ humans.
