@@ -7,7 +7,7 @@ export const WEAPONS={
 };
 export const WKEYS=['pistol','rifle','shotgun','sniper'];
 export const MUZZLE={pistol:23,rifle:31,shotgun:28,sniper:47};
-export const T=32,MATCH=180,GOAL=10,TEAM_GOAL=20,DUEL_GOAL=5,R=13,MAX_PLAYERS=8;
+export const T=32,MATCH=180,GOAL=10,TEAM_GOAL=20,DUEL_GOAL=2,R=13,MAX_PLAYERS=8;
 export const DROP_EVERY=7,DROP_MAX=6,DROP_KINDS=['rifle','shotgun','sniper'];
 
 // ---------- maps ----------  tiles: 0 floor, 1 wall, 2 crate, 3 bush

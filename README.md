@@ -31,7 +31,7 @@ Durable Objects work on the Workers free plan (SQLite-backed class, already set 
 - AI 대전 (home screen) runs sim.js in the browser with 3/5/7 bots, no server needed.
 - If a player leaves mid-match, their character becomes a bot `<name>(AI)` until the match ends. A new player joining a full room replaces one of those bots.
 - Modes: 데스매치 (first to 10 kills) or 팀전 (블루 vs 레드, first team to 20, no friendly fire). 3-minute limit either way.
-- 1:1 결투: two players (or you vs one AI). Every kill sends both back to their starting corners for the next round, with a 2-second freeze. First to 5 wins.
+- 1:1 결투: two players (or you vs one AI). Every kill sends both back to their starting corners for the next round, with a 2-second freeze. Best of 3: first to 2 round wins takes the match.
 - AI difficulty 초급/중간/강함 (`DIFF` in public/sim.js): reaction time, aim noise, turn speed, sight range.
 - Online: the host picks mode and AI difficulty in the lobby.
 - Maps: 창고 70x50, 숲 72x52, 도시 76x56 (대), 기둥 56x40 (중), 작은 기둥 36x26, 결투장 30x22, 미로 36x26 (소), or 랜덤 (built in public/shared.js `BUILD`). The camera caps the visible area, so you never see the whole map; the minimap (bottom-right) shows walls, you, teammates and your view box, never enemies.

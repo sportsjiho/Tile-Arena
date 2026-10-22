@@ -558,7 +558,7 @@ function onResult(m){
   if(m.mode==='duel'){
     const meR=m.r.find(r=>r[0]===myId)||[0,'',0],op=m.r.find(r=>r[0]!==myId)||[0,'상대',0];
     $('rTitle').textContent=meR[2]>op[2]?'승리!':meR[2]<op[2]?'패배':'무승부';
-    $('rSub').textContent=`나 ${meR[2]} : ${op[2]} ${esc(op[1])} · `+(m.why==='time'?'제한 시간 종료':`${DUEL_GOAL}승 달성`);
+    $('rSub').textContent=`나 ${meR[2]} : ${op[2]} ${esc(op[1])} · `+(m.why==='time'?'제한 시간 종료':`3전 ${DUEL_GOAL}승 달성`);
   }else if(m.mode==='team'){
     const myT=(m.r.find(r=>r[0]===myId)||[])[4];
     $('rTitle').textContent=m.win===-1?'무승부':m.win===myT?`${TEAM_NAME[m.win]} 팀 승리!`:`${TEAM_NAME[m.win]} 팀 승리`;
@@ -578,7 +578,7 @@ function renderLobby(){
   setSeg('lMode',roomMode);setSeg('lDiff',roomDiff);
   setSeg('lMap',roomMap);
   for(const id of['lMode','lDiff','lMap']){$(id).classList.toggle('ro',hostId!==myId);for(const b of $(id).children)b.disabled=hostId!==myId}
-  $('modeNote').textContent=(roomMode==='duel'?`1:1 결투. 킬이 날 때마다 둘 다 처음 자리로 돌아가 다음 라운드. ${DUEL_GOAL}승 먼저. 혼자면 AI가 상대해요.`:team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`)+` · 맵: ${MAP_NAME[roomMap]}`;
+  $('modeNote').textContent=(roomMode==='duel'?`1:1 결투. 킬이 날 때마다 둘 다 처음 자리로 돌아가 다음 라운드. 3전 ${DUEL_GOAL}승제. 혼자면 AI가 상대해요.`:team?`두 팀으로 나눠 팀 킬 ${TEAM_GOAL}을 먼저 채우면 승리. 같은 팀은 맞지 않아요.`:`개인전. ${GOAL}킬을 먼저 하면 승리.`)+` · 맵: ${MAP_NAME[roomMap]}`;
   $('plist').innerHTML=lobbyList.map(p=>`<li class="${p[0]===myId?'me':''}"><span class="dot${team?' t'+p[5]:''}"></span>${team?`<small style="color:${TEAM_COL[p[5]]}">${TEAM_NAME[p[5]]}</small> `:''}${esc(p[1])}${p[0]===hostId?'<span class="tag">방장</span>':''}</li>`).join('');
   const host=hostId===myId;
   $('startBtn').hidden=!host;
@@ -794,7 +794,7 @@ function hud(){
   $('clockBox').classList.toggle('low',clock<=30);
   $('kills').textContent=mine?mine[2]:0;
   const opp=lobbyList.find(p=>p[0]!==myId);
-  $('killsGoal').textContent=roomMode==='team'?'킬':roomMode==='duel'?`/ ${DUEL_GOAL} 승`:`/ ${GOAL} 킬`;
+  $('killsGoal').textContent=roomMode==='team'?'킬':roomMode==='duel'?`3전 ${DUEL_GOAL}승`:`/ ${GOAL} 킬`;
   $('tscore').hidden=roomMode==='ffa';
   if(roomMode==='duel')$('tscore').innerHTML=`<span class="b">나 ${mine?mine[2]:0}</span> : <span class="r">${opp?opp[2]:0} ${esc(opp?opp[1]:'상대')}</span>`;
   if(roomMode==='team')$('tscore').innerHTML=`<span class="b">블루 ${teamK[0]}</span> : <span class="r">${teamK[1]} 레드</span>`;
