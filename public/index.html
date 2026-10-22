@@ -22,12 +22,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:var(--bod
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:calc(24px + env(safe-area-inset-top,0px)) calc(24px + env(safe-area-inset-bottom,0px))}
 .wrap{width:100%;max-width:520px;display:flex;flex-direction:column;gap:18px}
+.wrap>*{flex-shrink:0}
 h1{font-family:var(--display);font-size:clamp(34px,9vw,52px);line-height:1;margin:8px 0 0;letter-spacing:.02em;text-wrap:balance}
 h1 b{color:var(--accent)}
 .sub{color:var(--muted);margin:0;font-size:14px}
 label.cap{font-family:var(--display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .field{display:flex;flex-direction:column;gap:8px}
-input[type=text]{background:var(--panel);border:1px solid var(--line);color:var(--fg);font:500 16px var(--body);padding:12px 14px;border-radius:6px}
+input[type=text],input[type=password]{background:var(--panel);border:1px solid var(--line);color:var(--fg);font:500 16px var(--body);padding:12px 14px;border-radius:6px}
 input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--accent)}
@@ -105,11 +106,14 @@ tr.me td{color:var(--accent);font-weight:700}
 .seg.maps button{font-size:13px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:1px}
 .seg button small{font:500 10px var(--body);opacity:.75}
 #botsRow[data-off] .seg{opacity:.4;pointer-events:none}
-.acct{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:44px}
+.acct{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-direction:row;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-height:44px}
 .acct .who{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .acct .who b{font-family:var(--display);font-size:17px}
 .acct .who small{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .acct .mini-btn{flex:none;background:transparent;border:1px solid var(--line);color:var(--fg);border-radius:5px;padding:7px 10px;font:500 13px var(--body);cursor:pointer}
+.loginform{display:flex;flex-direction:column;gap:8px;width:100%}
+.loginform .row2{display:flex;gap:8px}.loginform .row2 input{flex:1;min-width:0;padding:10px 12px;font-size:15px}
+.loginform .row2 button{flex:1}
 .nickrow{display:flex;gap:8px}.nickrow input{flex:1;min-width:0}.nickrow button{flex:none}
 .sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 .err{color:var(--enemy);font-size:13px;margin:0;min-height:1em}
@@ -144,7 +148,12 @@ button:disabled{opacity:.5;cursor:default}
       <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 · 팀전 20킬 · 1:1 5승</p>
     </div>
     <div class="acct" id="acct" hidden>
-      <div class="who" id="acctWho"><small>Google 계정으로 로그인하면 기록과 랭킹이 저장돼요.</small></div>
+      <div class="who" id="acctWho"><small>로그인하면 기록과 랭킹이 계속 저장돼요.</small></div>
+      <form class="loginform" id="loginForm" autocomplete="on">
+        <div class="row2"><input type="text" id="lid" placeholder="아이디" autocomplete="username" maxlength="12" autocapitalize="off"><input type="password" id="lpw" placeholder="비밀번호" autocomplete="current-password" maxlength="64"></div>
+        <div class="row2"><button class="go" type="submit" id="loginBtn" style="padding:11px;font-size:15px">로그인</button><button class="ghost" type="button" id="signupBtn">회원가입</button></div>
+        <p class="err" id="loginMsg"></p>
+      </form>
       <div id="gbtn"></div>
       <button class="mini-btn" id="rankBtn">랭킹</button>
       <button class="mini-btn" id="logoutBtn" hidden>로그아웃</button>
@@ -201,7 +210,7 @@ button:disabled{opacity:.5;cursor:default}
 
 <section class="screen" id="rank" hidden>
   <div class="wrap">
-    <div><h1>랭킹</h1><p class="sub">로그인한 플레이어끼리 2명 이상 참가한 온라인 경기만 집계해요.</p></div>
+    <div><h1>랭킹</h1><p class="sub">로그인한 플레이어의 온라인 경기(2명 이상 참가)만 집계해요.</p></div>
     <table><thead><tr><th>#</th><th>닉네임</th><th class="n">승</th><th class="n">판</th><th class="n">킬</th><th class="n">K/D</th></tr></thead><tbody id="rankBody"></tbody></table>
     <button class="ghost" id="rankBack">돌아가기</button>
   </div>
@@ -276,9 +285,9 @@ async function apiGet(p){try{const r=await fetch(p,{credentials:'same-origin'});
 async function apiPost(p,b){try{const r=await fetch(p,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(b||{})});return{ok:r.ok,data:await r.json().catch(()=>({}))}}catch(_){return{ok:false,data:{error:'서버에 연결하지 못했어요.'}}}}
 function renderAccount(){
   const u=account;
-  $('logoutBtn').hidden=!u;$('gbtn').hidden=!!u;$('saveNick').hidden=!u;
+  $('logoutBtn').hidden=!u;$('gbtn').hidden=!!u;$('saveNick').hidden=!u;$('loginForm').hidden=!!u;
   $('acctWho').innerHTML=u?`<b>${esc(u.nick)}</b><small>${u.games}판 · ${u.wins}승 · ${u.kills}킬 · K/D ${kd(u.kills,u.deaths)}</small>`
-    :'<small>Google 계정으로 로그인하면 기록과 랭킹이 저장돼요.</small>';
+    :'<small>로그인하면 기록과 랭킹이 계속 저장돼요. 한 번 로그인하면 1년 동안 유지돼요.</small>';
   if(u)$('nick').value=u.nick;
 }
 async function initAccount(){
@@ -286,7 +295,7 @@ async function initAccount(){
   if(!cfg)return; // running without the server (e.g. opened as a file)
   $('acct').hidden=false;
   const me0=await apiGet('/api/me');account=me0&&me0.user;renderAccount();
-  if(!cfg.clientId){$('gbtn').innerHTML='<small style="color:var(--muted)">Google 로그인 준비 중</small>';return}
+  if(!cfg.clientId)return; // Google login is optional; ID/password always works
   const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
   sc.onload=()=>{
     google.accounts.id.initialize({client_id:cfg.clientId,callback:async res=>{
@@ -297,6 +306,17 @@ async function initAccount(){
   };
   document.head.appendChild(sc);
 }
+async function pwAuth(kind){
+  const id=$('lid').value.trim().toLowerCase(),pw=$('lpw').value;
+  if(!id||!pw){$('loginMsg').textContent='아이디와 비밀번호를 입력해 주세요.';return}
+  $('loginMsg').textContent='';$('loginBtn').disabled=$('signupBtn').disabled=true;
+  const r=await apiPost(kind==='signup'?'/api/signup':'/api/pwlogin',{id,pw,nick:$('nick').value.trim()});
+  $('loginBtn').disabled=$('signupBtn').disabled=false;
+  if(r.ok){account=r.data.user;$('lpw').value='';renderAccount()}
+  else $('loginMsg').textContent=r.data.error||'실패했어요.';
+}
+$('loginForm').addEventListener('submit',e=>{e.preventDefault();pwAuth('login')});
+$('signupBtn').onclick=()=>pwAuth('signup');
 $('logoutBtn').onclick=async()=>{await apiPost('/api/logout');account=null;renderAccount();try{google.accounts.id.disableAutoSelect()}catch(_){}};
 $('saveNick').onclick=async()=>{
   const r=await apiPost('/api/nick',{nick:$('nick').value.trim()});

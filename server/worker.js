@@ -36,7 +36,13 @@ async function api(req,env,path){
     const g=await verifyGoogle(String(body.credential||''),clientId);
     if(!g)return json({error:'Google 로그인 확인에 실패했어요.'},401);
     const r=await ask(env,'/login',g);
-    return json({user:r.user},200,{'set-cookie':sessionCookie(r.token,30*86400)});
+    return json({user:r.user},200,{'set-cookie':sessionCookie(r.token,365*86400)});
+  }
+  if(path==='/api/signup'||path==='/api/pwlogin'){
+    const r=await acc(env).fetch('https://acc'+(path==='/api/signup'?'/signup':'/pwlogin'),{method:'POST',body:JSON.stringify({id:body.id,pw:body.pw,nick:body.nick})});
+    const d=await r.json();
+    if(!r.ok)return json({error:d.error},r.status);
+    return json({user:d.user},200,{'set-cookie':sessionCookie(d.token,365*86400)});
   }
   if(path==='/api/logout'){
     await ask(env,'/logout',{token:getCookie(req,'ta_s')});
