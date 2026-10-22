@@ -508,6 +508,7 @@ function handle(m){
     case 'kill':{
       const p=posOf(m.id);
       if(p)for(let i=0;i<10;i++)fx.push({k:'gib',x:p.x,y:p.y,vx:(Math.random()-.5)*260,vy:(Math.random()-.5)*260,t:.5,c:colorOf(m.id)});
+      if(roomMode==='duel'&&m.by===myId)sndRoundWin();
       pushFeed(`<b>${esc(m.bn)}</b> → ${esc(m.vn)}`,4);break}
     case 'pk':sfx('pick');if(WEAPONS[m.k])pushFeed(`<b>${WEAPONS[m.k].name}</b> 획득`,2.5);break;
     case 'drop':pushFeed(`<b>${WEAPONS[m.k].name}</b> 등장`,3);break;
@@ -557,6 +558,7 @@ function onResult(m){
   const mine=m.r.findIndex(r=>r[0]===myId)+1;
   if(m.mode==='duel'){
     const meR=m.r.find(r=>r[0]===myId)||[0,'',0],op=m.r.find(r=>r[0]!==myId)||[0,'상대',0];
+    if(meR[2]>op[2])sndMatchWin(.45);
     $('rTitle').textContent=meR[2]>op[2]?'승리!':meR[2]<op[2]?'패배':'무승부';
     $('rSub').textContent=`나 ${meR[2]} : ${op[2]} ${esc(op[1])} · `+(m.why==='time'?'제한 시간 종료':`3전 ${DUEL_GOAL}승 달성`);
   }else if(m.mode==='team'){
@@ -638,6 +640,15 @@ function sfx(k,vol=.5){
   g.gain.setValueAtTime(.08*vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);
   o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d);
 }
+
+function jingle(notes,gap,dur,type='triangle',vol=.5,delay=0){
+  if(!ac)return;const t0=ac.currentTime+delay;
+  notes.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t=t0+i*gap;o.type=type;o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12*vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g).connect(ac.destination);o.start(t);o.stop(t+dur+.02)})
+}
+const sndRoundWin=()=>jingle([523,659,784],.09,.22,'triangle',.5);
+const sndMatchWin=d=>jingle([523,659,784,1047,784,1047,1319],.12,.35,'square',.45,d||0);
 
 // ---------- loop ----------
 function update(dt){
