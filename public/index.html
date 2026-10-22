@@ -6,12 +6,13 @@
 <style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
 <title>Tile Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Chakra+Petch:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 /* Layout: full-bleed canvas, three screen states (home / play / result) swapped via [hidden]. Single dark look by choice. */
 :root{
   --bg:#0f1316; --floor:#151b1f; --panel:#1b2328; --line:#2a353c;
   --fg:#e6ece9; --muted:#8a9a99; --accent:#f2b134; --enemy:#e2574c; --ally:#4fc3a1;
+  --kr:"Black Han Sans","Noto Sans KR",sans-serif;
   --display:"Chakra Petch","Noto Sans KR",system-ui,sans-serif;
   --body:"Noto Sans KR",system-ui,sans-serif;
   color-scheme:dark;
@@ -47,6 +48,8 @@ kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;pa
 .screen.menu:not(.home) .wrap{margin:auto;max-width:540px;box-sizing:border-box;padding:24px;gap:16px;border-radius:14px;background:rgba(22,29,34,.78);border:1px solid var(--line);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 24px 70px rgba(0,0,0,.5)}
 span.cap{font-family:var(--display);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-top:6px}
+.phead h1,#rTitle{font-family:var(--kr);font-weight:900;font-synthesis:none;letter-spacing:.03em}
+#rTitle{font-size:clamp(46px,12vw,72px);text-shadow:0 0 30px rgba(242,177,52,.35)}
 .phead{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .phead h1{margin:0;font-size:clamp(34px,8vw,46px)}
 .phead h1::after{content:"";display:block;width:56px;height:4px;border-radius:2px;margin-top:10px;background:linear-gradient(90deg,var(--accent) 0 33%,var(--ally) 33% 66%,var(--enemy) 66%)}
@@ -631,7 +634,8 @@ function readInput(){
 
 // ---------- audio ----------
 let ac=null;
-function audioInit(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(_){}}}
+function krFont(px){let ok=false;try{ok=[...document.fonts].some(f=>f.family.replace(/"/g,'')==='Black Han Sans'&&f.status==='loaded')}catch(_){}return ok?`400 ${px}px "Black Han Sans",sans-serif`:`700 ${px}px "Noto Sans KR",sans-serif`}
+function audioInit(){try{document.fonts.load('400 40px "Black Han Sans"')}catch(_){}if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(_){}}}
 const SND={pistol:[220,.06,'square'],rifle:[180,.04,'square'],shotgun:[90,.12,'sawtooth'],sniper:[60,.2,'sawtooth'],hit:[880,.04,'triangle'],reload:[440,.05,'triangle'],pick:[660,.08,'sine']};
 function sfx(k,vol=.5){
   if(!ac||!SND[k])return;const[f,d,type]=SND[k];
@@ -756,13 +760,13 @@ function render(){
   drawMini(c);
   if(roomMode==='duel'&&freeze>0){
     ctx.fillStyle='rgba(15,19,22,.35)';ctx.fillRect(0,0,W,H);
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f2b134';ctx.font='700 46px "Chakra Petch",sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f2b134';ctx.font=krFont(56);
     ctx.fillText(`라운드 ${roundN}`,W/2,H/2-26);
     ctx.fillStyle='#e6ece9';ctx.font='700 30px "Chakra Petch",sans-serif';ctx.fillText(Math.ceil(freeze)+'',W/2,H/2+22);
   }
   if(roomMode==='duel'&&resetIn>0&&freeze<=0){
     ctx.textAlign='center';ctx.textBaseline='middle';const lost=me.dead>0;
-    ctx.fillStyle=lost?'rgba(226,87,76,.95)':'rgba(79,195,161,.95)';ctx.font='700 40px "Chakra Petch",sans-serif';ctx.fillText(lost?'라운드 패배':'라운드 승리!',W/2,H*.3);
+    ctx.fillStyle=lost?'rgba(226,87,76,.95)':'rgba(79,195,161,.95)';ctx.font=krFont(54);ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=14;ctx.fillText(lost?'라운드 패배':'라운드 승리!',W/2,H*.3);ctx.shadowBlur=0;
     ctx.fillStyle='#e6ece9';ctx.font='700 20px "Chakra Petch",sans-serif';ctx.fillText(`다음 라운드까지 ${Math.ceil(resetIn)}`,W/2,H*.3+36);
   }
   if(me.dead>0&&roomMode!=='duel'){
