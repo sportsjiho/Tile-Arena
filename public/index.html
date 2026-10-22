@@ -39,10 +39,36 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline
 .keys{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
 kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--fg)}
 
+
+/* menu screens share the home background; each page is one glass card */
+#hbgw{position:fixed;inset:0;background:radial-gradient(120% 90% at 20% 10%,#18222a 0,var(--bg) 60%)}
+#hbgw::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(8,11,13,.85) 100%)}
+.screen.menu{background:transparent;align-items:flex-start}
+.screen.menu:not(.home) .wrap{margin:auto;max-width:540px;box-sizing:border-box;padding:24px;gap:16px;border-radius:14px;background:rgba(22,29,34,.78);border:1px solid var(--line);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 24px 70px rgba(0,0,0,.5)}
+span.cap{font-family:var(--display);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-top:6px}
+.phead{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.phead h1{margin:0;font-size:clamp(34px,8vw,46px)}
+.phead h1::after{content:"";display:block;width:56px;height:4px;border-radius:2px;margin-top:10px;background:linear-gradient(90deg,var(--accent) 0 33%,var(--ally) 33% 66%,var(--enemy) 66%)}
+.phead .eyebrow{font-size:11px}
+.back{background:transparent;border:0;color:var(--muted);font:500 14px var(--body);padding:4px 0 8px;cursor:pointer}
+.back:hover{color:var(--fg)}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}
+.or::before,.or::after{content:"";flex:1;border-top:1px solid var(--line)}
+.screen.menu:not(.home) .go{font-size:19px;padding:16px;box-shadow:0 0 28px rgba(242,177,52,.25)}
+.screen.menu:not(.home) .field{padding:14px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05)}
+.screen.menu .seg button{transition:background .12s,transform .12s}
+.screen.menu .seg button:hover:not([aria-pressed=true]):not(:disabled){background:#222c32}
+.screen.menu .seg button[aria-pressed=true]{box-shadow:0 0 16px rgba(242,177,52,.3)}
+.screen.menu .seg.maps button{padding:10px 2px}
+.screen.menu .codebox{background:rgba(0,0,0,.25);border-radius:10px;padding:14px 16px}
+.screen.menu .plist li{background:rgba(255,255,255,.04);border-radius:8px}
+.screen.menu table{background:rgba(0,0,0,.18);border-radius:8px}
+.screen.menu th,.screen.menu td{padding:10px 10px}
+@media (min-width:860px){.screen.menu:not(.home) .wrap{max-width:600px;padding:32px;gap:18px}}
 /* Home: mobile = stacked, thumb-reachable menu; desktop (>=860px) = hero left, menu card right */
-.home{padding:0;background:radial-gradient(120% 90% at 20% 10%,#18222a 0,var(--bg) 60%);justify-content:stretch}
+.home{padding:0;justify-content:stretch}
 #hbg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.home::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(8,11,13,.85) 100%)}
 .hwrap{position:relative;z-index:1;width:100%;min-height:100%;display:flex;flex-direction:column;justify-content:space-between;gap:22px;box-sizing:border-box;
   padding:calc(36px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
 .hhero{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
@@ -183,8 +209,9 @@ button:disabled{opacity:.5;cursor:default}
   <button class="tbtn" id="bSwap" hidden aria-label="무기 교체">⇄</button>
 </div>
 
-<section class="screen home" id="home">
-  <canvas id="hbg" aria-hidden="true"></canvas>
+<div id="hbgw" aria-hidden="true"><canvas id="hbg"></canvas></div>
+
+<section class="screen home menu" id="home">
   <div class="hwrap">
     <div class="hhero">
       <div class="eyebrow">ONLINE TOP-DOWN SHOOTER</div>
@@ -223,43 +250,43 @@ button:disabled{opacity:.5;cursor:default}
   </div>
 </section>
 
-<section class="screen" id="online" hidden>
+<section class="screen menu" id="online" hidden>
   <div class="wrap">
-    <div><h1>온라인 플레이</h1><p class="sub">친구와 같은 방 코드로 모여요.</p></div>
+    <div class="phead"><button class="back" id="backO">‹ 처음으로</button><div class="eyebrow">MULTIPLAYER</div><h1>온라인 플레이</h1><p class="sub">친구와 같은 방 코드로 모여요.</p></div>
     <button class="go" id="create">방 만들기</button>
+    <div class="or"><span>또는</span></div>
     <div class="field">
       <label class="cap" for="code">방 코드로 참가</label>
       <div class="joinrow"><input type="text" id="code" maxlength="6" placeholder="ABCD" autocomplete="off"><button class="ghost" id="join">참가</button></div>
     </div>
     <button class="ghost" id="quick">빠른 참가</button>
     <p class="err" id="err"></p>
-    <button class="ghost" id="backO">처음으로</button>
   </div>
 </section>
 
-<section class="screen" id="ai" hidden>
+<section class="screen menu" id="ai" hidden>
   <div class="wrap">
-    <div><h1>AI와 플레이</h1><p class="sub">서버 없이 혼자 연습해요.</p></div>
+    <div class="phead"><button class="back" id="backA">‹ 처음으로</button><div class="eyebrow">SOLO PRACTICE</div><h1>AI와 플레이</h1><p class="sub">서버 없이 혼자 연습해요.</p></div>
     <div class="field">
-      <span class="cap">AI와 플레이</span>
+      <span class="cap">모드</span>
       <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button><button aria-pressed="false" data-v="duel">1:1 결투</button></div>
+      <span class="cap">AI 난이도</span>
       <div class="seg" id="soloDiff"><button aria-pressed="false" data-v="easy">초급</button><button aria-pressed="true" data-v="normal">중간</button><button aria-pressed="false" data-v="hard">강함</button></div>
       <span class="cap">맵</span>
       <div class="seg maps" id="soloMap"><button aria-pressed="false" data-v="warehouse">창고<small>대</small></button><button aria-pressed="false" data-v="forest">숲<small>대</small></button><button aria-pressed="false" data-v="city">도시<small>대</small></button><button aria-pressed="false" data-v="pillars">기둥<small>중</small></button><button aria-pressed="false" data-v="pillars_s">작은 기둥<small>소</small></button><button aria-pressed="false" data-v="arena">결투장<small>소</small></button><button aria-pressed="false" data-v="maze">미로<small>소</small></button><button aria-pressed="true" data-v="random">랜덤</button></div>
       <span class="cap" id="botsCap">봇 수</span>
       <div class="joinrow" id="botsRow">
         <div class="seg" id="bots"><button aria-pressed="false" data-n="3">3</button><button aria-pressed="true" data-n="5">5</button><button aria-pressed="false" data-n="7">7</button></div>
-        <button class="ghost" id="solo">AI 대전</button>
-      </div>
-      <p class="note">서버 없이 혼자 연습해요. 온라인 경기 중 누가 나가면 그 캐릭터도 AI가 이어서 플레이해요.</p>
+        </div>
+      <p class="note">온라인 경기 중 누가 나가면 그 캐릭터도 AI가 이어서 플레이해요.</p>
     </div>
-    <button class="ghost" id="backA">처음으로</button>
+    <button class="go" id="solo">게임 시작</button>
   </div>
 </section>
 
-<section class="screen" id="lobby" hidden>
+<section class="screen menu" id="lobby" hidden>
   <div class="wrap">
-    <div><h1>대기실</h1><p class="sub" id="lobbySub">친구에게 코드를 알려주세요</p></div>
+    <div class="phead"><div class="eyebrow">LOBBY</div><h1>대기실</h1><p class="sub" id="lobbySub">친구에게 코드를 알려주세요</p></div>
     <div class="codebox"><b id="lobbyCode">----</b><button class="ghost" id="copy">링크 복사</button></div>
     <div class="field">
       <span class="cap">모드</span>
@@ -276,17 +303,17 @@ button:disabled{opacity:.5;cursor:default}
   </div>
 </section>
 
-<section class="screen" id="rank" hidden>
+<section class="screen menu" id="rank" hidden>
   <div class="wrap">
-    <div><h1>랭킹</h1><p class="sub">로그인한 플레이어의 온라인 경기(2명 이상 참가)만 집계해요.</p></div>
+    <div class="phead"><div class="eyebrow">LEADERBOARD</div><h1>랭킹</h1><p class="sub">로그인한 플레이어의 온라인 경기(2명 이상 참가)만 집계해요.</p></div>
     <table><thead><tr><th>#</th><th>닉네임</th><th class="n">승</th><th class="n">판</th><th class="n">킬</th><th class="n">K/D</th></tr></thead><tbody id="rankBody"></tbody></table>
     <button class="ghost" id="rankBack">돌아가기</button>
   </div>
 </section>
 
-<section class="screen" id="result" hidden>
+<section class="screen menu" id="result" hidden>
   <div class="wrap">
-    <div><h1 id="rTitle">경기 종료</h1><p class="sub" id="rSub"></p></div>
+    <div class="phead"><div class="eyebrow">RESULT</div><h1 id="rTitle">경기 종료</h1><p class="sub" id="rSub"></p></div>
     <table><thead><tr><th>#</th><th>플레이어</th><th class="n">킬</th><th class="n">데스</th></tr></thead><tbody id="rBody"></tbody></table>
     <div class="row"><button class="go" id="again">다시 하기</button><button class="ghost" id="toLobby">대기실로</button><button class="ghost" id="toHome">홈으로</button></div>
   </div>
@@ -787,7 +814,7 @@ requestAnimationFrame(frame);
 // ---------- screens ----------
 function setScreen(m){
   mode=m;
-  $('rank').hidden=m!=='RANK';$('home').hidden=m!=='HOME';$('online').hidden=m!=='ONLINE';$('ai').hidden=m!=='AI';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
+  $('rank').hidden=m!=='RANK';$('home').hidden=m!=='HOME';$('online').hidden=m!=='ONLINE';$('ai').hidden=m!=='AI';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';$('hbgw').hidden=m==='PLAYING';
   $('bReload').hidden=$('bSwap').hidden=!isTouch;
   document.body.classList.toggle('touch',isTouch);
   if(isTouch){
@@ -816,7 +843,7 @@ function setScreen(m){
   }
   function draw(t){
     requestAnimationFrame(draw);
-    if($('home').hidden)return;
+    if($('hbgw').hidden)return;
     const dt=Math.min(.05,(t-last)/1000||0);last=t;
     g.clearRect(0,0,W,H);
     g.strokeStyle='rgba(255,255,255,.045)';g.lineWidth=1;g.beginPath();
