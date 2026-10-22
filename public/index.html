@@ -163,6 +163,16 @@ button:disabled{opacity:.5;cursor:default}
       <div class="nickrow"><input type="text" id="nick" maxlength="10" value="플레이어" autocomplete="off"><button class="ghost" id="saveNick" hidden>저장</button></div>
       <p class="err" id="nickMsg" hidden></p>
     </div>
+    <button class="go" id="goOnline">온라인 플레이</button>
+    <button class="ghost" id="goAi">AI와 플레이</button>
+    <p class="note">모두 권총으로 시작해요. 경기 중 맵에 소총·샷건·저격총이 떨어지면 먼저 줍는 사람이 가져가요.</p>
+    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체<br>모바일: 왼쪽 조이스틱 이동, 오른쪽 조이스틱 조준+발사</p>
+  </div>
+</section>
+
+<section class="screen" id="online" hidden>
+  <div class="wrap">
+    <div><h1>온라인 플레이</h1><p class="sub">친구와 같은 방 코드로 모여요.</p></div>
     <button class="go" id="create">방 만들기</button>
     <div class="field">
       <label class="cap" for="code">방 코드로 참가</label>
@@ -170,7 +180,13 @@ button:disabled{opacity:.5;cursor:default}
     </div>
     <button class="ghost" id="quick">빠른 참가</button>
     <p class="err" id="err"></p>
-    <hr class="sep">
+    <button class="ghost" id="backO">처음으로</button>
+  </div>
+</section>
+
+<section class="screen" id="ai" hidden>
+  <div class="wrap">
+    <div><h1>AI와 플레이</h1><p class="sub">서버 없이 혼자 연습해요.</p></div>
     <div class="field">
       <span class="cap">AI와 플레이</span>
       <div class="seg" id="soloMode"><button aria-pressed="true" data-v="ffa">데스매치</button><button aria-pressed="false" data-v="team">팀전</button><button aria-pressed="false" data-v="duel">1:1 결투</button></div>
@@ -184,8 +200,7 @@ button:disabled{opacity:.5;cursor:default}
       </div>
       <p class="note">서버 없이 혼자 연습해요. 온라인 경기 중 누가 나가면 그 캐릭터도 AI가 이어서 플레이해요.</p>
     </div>
-    <p class="note">모두 권총으로 시작해요. 경기 중 맵에 소총·샷건·저격총이 떨어지면 먼저 줍는 사람이 가져가요.</p>
-    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체<br>모바일: 왼쪽 조이스틱 이동, 오른쪽 조이스틱 조준+발사</p>
+    <button class="ghost" id="backA">처음으로</button>
   </div>
 </section>
 
@@ -272,7 +287,7 @@ function connect(code,create,name){
     sock.onerror=()=>{if(!settled){settled=true;reject(new Error('connect'))}};
     sock.onclose=()=>{
       if(!settled){settled=true;reject(new Error('connect'));return}
-      if(ws===sock){ws=null;if(mode!=='HOME'&&!solo){goHome('연결이 끊겼어요.')}}
+      if(ws===sock){ws=null;if(mode!=='HOME'&&mode!=='ONLINE'&&mode!=='AI'&&!solo){goHome('연결이 끊겼어요.')}}
     };
   });
 }
@@ -331,6 +346,7 @@ $('rankBtn').onclick=async()=>{
     :'<tr><td colspan="6">아직 기록이 없어요. 친구와 온라인 경기를 해 보세요.</td></tr>';
 };
 $('rankBack').onclick=()=>setScreen('HOME');
+$('goOnline').onclick=()=>setScreen('ONLINE');$('goAi').onclick=()=>setScreen('AI');$('backO').onclick=$('backA').onclick=()=>setScreen('HOME');
 initAccount();
 function nick(){const n=$('nick').value.trim().slice(0,10)||'플레이어';try{localStorage.setItem('arena_nick',n)}catch(_){}return n}
 async function enter(code,create){
@@ -384,7 +400,7 @@ $('copy').onclick=async()=>{
 function goHome(msg){
   stopLocal();
   const s=ws;ws=null;if(s)try{s.close()}catch(_){}
-  me=null;others.clear();setScreen('HOME');
+  me=null;others.clear();setScreen(msg?'ONLINE':'HOME');
   if(account)apiGet('/api/me').then(r=>{if(r&&r.user){account=r.user;renderAccount()}});$('err').textContent=msg||'';
 }
 function resetWorld(){me=null;others.clear();bullets=[];fx=[];items=[];feed=[];lobbyList=[];lastResult=null}
@@ -718,7 +734,7 @@ requestAnimationFrame(frame);
 // ---------- screens ----------
 function setScreen(m){
   mode=m;
-  $('rank').hidden=m!=='RANK';$('home').hidden=m!=='HOME';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
+  $('rank').hidden=m!=='RANK';$('home').hidden=m!=='HOME';$('online').hidden=m!=='ONLINE';$('ai').hidden=m!=='AI';$('lobby').hidden=m!=='LOBBY';$('result').hidden=m!=='RESULT';$('hud').hidden=m!=='PLAYING';
   $('bReload').hidden=$('bSwap').hidden=!isTouch;
   document.body.classList.toggle('touch',isTouch);
   if(isTouch){
@@ -731,8 +747,8 @@ function setScreen(m){
 }
 try{const n=localStorage.getItem('arena_nick');if(n)$('nick').value=n}catch(_){}
 const h=location.hash.slice(1).toUpperCase().replace(/[^A-Z0-9]/g,'');
-if(h){$('code').value=h}
-setScreen('HOME');
+if(h)$('code').value=h;
+setScreen(h?'ONLINE':'HOME');
 </script>
 </body>
 </html>
