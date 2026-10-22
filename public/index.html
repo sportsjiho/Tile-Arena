@@ -38,6 +38,48 @@ input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline
 .note{font-size:12px;color:var(--muted);margin:0}
 .keys{font-size:12px;color:var(--muted);line-height:1.7;margin:0}
 kbd{font-family:var(--display);border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--fg)}
+
+/* Home: mobile = stacked, thumb-reachable menu; desktop (>=860px) = hero left, menu card right */
+.home{padding:0;background:radial-gradient(120% 90% at 20% 10%,#18222a 0,var(--bg) 60%);justify-content:stretch}
+#hbg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.home::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(8,11,13,.85) 100%)}
+.hwrap{position:relative;z-index:1;width:100%;min-height:100%;display:flex;flex-direction:column;justify-content:space-between;gap:22px;box-sizing:border-box;
+  padding:calc(36px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px))}
+.hhero{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center}
+.eyebrow{font:700 11px var(--display);letter-spacing:.32em;color:var(--accent);opacity:.9}
+.logo{display:flex;flex-direction:column;align-items:center;margin:0;font:700 clamp(64px,22vw,104px)/.88 var(--display);letter-spacing:.02em;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.logo span{color:var(--fg)}
+.logo b{color:var(--accent);text-shadow:0 0 34px rgba(242,177,52,.45),0 4px 30px rgba(0,0,0,.6)}
+.tilestrip{display:flex;gap:5px;margin-top:4px}
+.tilestrip i{width:14px;height:14px;border-radius:3px;background:var(--line);animation:tp 2.4s ease-in-out infinite}
+.tilestrip i:nth-child(3n+1){background:var(--accent)}.tilestrip i:nth-child(3n+2){background:var(--ally)}.tilestrip i:nth-child(5n){background:var(--enemy)}
+.tilestrip i:nth-child(1){animation-delay:0s}.tilestrip i:nth-child(2){animation-delay:.12s}.tilestrip i:nth-child(3){animation-delay:.24s}.tilestrip i:nth-child(4){animation-delay:.36s}.tilestrip i:nth-child(5){animation-delay:.48s}
+.tilestrip i:nth-child(6){animation-delay:.6s}.tilestrip i:nth-child(7){animation-delay:.72s}.tilestrip i:nth-child(8){animation-delay:.84s}.tilestrip i:nth-child(9){animation-delay:.96s}.tilestrip i:nth-child(10){animation-delay:1.08s}
+@keyframes tp{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.tag{margin:6px 0 0;color:var(--muted);font-size:14px}
+.hmenu{display:flex;flex-direction:column;gap:10px;width:100%;max-width:460px;margin:0 auto;box-sizing:border-box;padding:16px;border-radius:12px;
+  background:rgba(22,29,34,.72);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.hmenu .go{font-size:20px;padding:17px;box-shadow:0 0 30px rgba(242,177,52,.3);transition:transform .12s,box-shadow .12s}
+.hmenu .go:hover{transform:translateY(-1px);box-shadow:0 0 40px rgba(242,177,52,.5)}
+.hmenu .ghost{padding:15px;font-size:16px;background:rgba(255,255,255,.03)}
+.hmenu .keys{text-align:center}
+.facts{list-style:none;margin:10px 0 0;padding:0;display:flex;gap:12px}
+.facts li{min-width:92px;padding:12px 14px;border-radius:8px;background:rgba(22,29,34,.6);border:1px solid var(--line);display:flex;flex-direction:column;gap:2px;text-align:left}
+.facts b{font:700 30px/1 var(--display);color:var(--accent)}.facts span{font-size:12px;color:var(--muted)}
+.only-d{display:none}
+@media (min-width:860px){
+  .only-d{display:flex}.only-m{display:none}
+  .hwrap{flex-direction:row;align-items:center;justify-content:center;gap:7vw;padding:48px 6vw}
+  .hhero{align-items:flex-start;text-align:left;gap:16px;flex:1 1 0;max-width:640px}
+  .eyebrow{font-size:13px}
+  .logo{align-items:flex-start;font-size:clamp(110px,13vw,190px)}
+  .tilestrip i{width:20px;height:20px;gap:8px}.tilestrip{gap:8px}
+  .tag{font-size:18px}
+  p.keys.only-d{display:block;margin-top:14px;font-size:13px}
+  .hmenu{flex:0 0 400px;margin:0;padding:22px;gap:12px}
+}
+@media (max-height:620px) and (max-width:859px){.logo{font-size:56px}.hwrap{gap:12px;padding-top:calc(16px + env(safe-area-inset-top,0px))}}
+@media (prefers-reduced-motion:reduce){.tilestrip i{animation:none;opacity:.8}}
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;font-family:var(--display)}
 .top{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
@@ -141,12 +183,23 @@ button:disabled{opacity:.5;cursor:default}
   <button class="tbtn" id="bSwap" hidden aria-label="무기 교체">⇄</button>
 </div>
 
-<section class="screen" id="home">
-  <div class="wrap">
-    <div>
-      <h1>TILE <b>ARENA</b></h1>
-      <p class="sub">온라인 탑다운 데스매치 · 최대 8명 · 3분 · 데스매치 10킬 · 팀전 20킬 · 1:1 5승</p>
+<section class="screen home" id="home">
+  <canvas id="hbg" aria-hidden="true"></canvas>
+  <div class="hwrap">
+    <div class="hhero">
+      <div class="eyebrow">ONLINE TOP-DOWN SHOOTER</div>
+      <h1 class="logo"><span>TILE</span><b>ARENA</b></h1>
+      <div class="tilestrip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="tag">타일 위의 마지막 생존자가 되어라.</p>
+      <ul class="facts only-d">
+        <li><b>8</b><span>최대 인원</span></li>
+        <li><b>3</b><span>게임 모드</span></li>
+        <li><b>7</b><span>맵</span></li>
+        <li><b>3</b><span>AI 난이도</span></li>
+      </ul>
+      <p class="keys only-d"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체</p>
     </div>
+    <div class="hmenu">
     <div class="acct" id="acct" hidden>
       <div class="who" id="acctWho"><small>로그인하면 기록과 랭킹이 계속 저장돼요.</small></div>
       <form class="loginform" id="loginForm" autocomplete="on">
@@ -163,10 +216,10 @@ button:disabled{opacity:.5;cursor:default}
       <div class="nickrow"><input type="text" id="nick" maxlength="10" value="플레이어" autocomplete="off"><button class="ghost" id="saveNick" hidden>저장</button></div>
       <p class="err" id="nickMsg" hidden></p>
     </div>
-    <button class="go" id="goOnline">온라인 플레이</button>
-    <button class="ghost" id="goAi">AI와 플레이</button>
-    <p class="note">모두 권총으로 시작해요. 경기 중 맵에 소총·샷건·저격총이 떨어지면 먼저 줍는 사람이 가져가요.</p>
-    <p class="keys"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체<br>모바일: 왼쪽 조이스틱 이동, 오른쪽 조이스틱 조준+발사</p>
+      <button class="go" id="goOnline">온라인 플레이</button>
+      <button class="ghost" id="goAi">AI와 플레이</button>
+      <p class="keys only-m">왼쪽 조이스틱 이동 · 오른쪽 조이스틱 조준+발사</p>
+    </div>
   </div>
 </section>
 
@@ -745,6 +798,45 @@ function setScreen(m){
   if(m==='LOBBY')renderLobby();
   hudKey='';
 }
+
+// ---------- home background (tiles + tracers), runs only while HOME is shown ----------
+(function(){
+  const cv=$('hbg'),g=cv.getContext('2d'),S=44,still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let W=0,H=0,cols=0,rows=0,walls=[],pulses=[],tr=[],last=0,spawn=0;
+  const rnd=(a,b)=>a+Math.random()*(b-a),COL=['242,177,52','79,195,161','226,87,76'];
+  function size(){
+    const d=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;g.setTransform(d,0,0,d,0,0);
+    cols=Math.ceil(W/S)+1;rows=Math.ceil(H/S)+1;walls=[];
+    for(let i=0;i<Math.floor(cols*rows/14);i++){const c=Math.floor(Math.random()*cols),r=Math.floor(Math.random()*rows),k=Math.random()<.65?1:2,n=1+Math.floor(Math.random()*3),h=Math.random()<.5;
+      for(let j=0;j<n;j++)walls.push({c:c+(h?j:0),r:r+(h?0:j),k})}
+  }
+  function spawnTracer(){
+    const h=Math.random()<.5,col=COL[Math.floor(Math.random()*3)],dir=Math.random()<.5?1:-1,line=Math.floor(Math.random()*(h?rows:cols))*S+S/2;
+    tr.push({h,dir,line,p:h?(dir>0?-60:W+60):(dir>0?-60:H+60),v:rnd(500,900),col,len:rnd(50,110)});
+  }
+  function draw(t){
+    requestAnimationFrame(draw);
+    if($('home').hidden)return;
+    const dt=Math.min(.05,(t-last)/1000||0);last=t;
+    g.clearRect(0,0,W,H);
+    g.strokeStyle='rgba(255,255,255,.045)';g.lineWidth=1;g.beginPath();
+    for(let x=0;x<=W;x+=S){g.moveTo(x+.5,0);g.lineTo(x+.5,H)}for(let y=0;y<=H;y+=S){g.moveTo(0,y+.5);g.lineTo(W,y+.5)}g.stroke();
+    for(const w of walls){g.fillStyle=w.k===1?'rgba(70,86,94,.35)':'rgba(150,108,60,.30)';g.fillRect(w.c*S+2,w.r*S+2,S-4,S-4)}
+    if(!still){
+      spawn-=dt;if(spawn<=0){spawnTracer();spawn=rnd(.25,.7)}
+      if(Math.random()<dt*3)pulses.push({c:Math.floor(Math.random()*cols),r:Math.floor(Math.random()*rows),t:0,col:COL[Math.floor(Math.random()*3)]});
+    }
+    for(let i=pulses.length-1;i>=0;i--){const p=pulses[i];p.t+=dt;const a=Math.sin(p.t/1.6*Math.PI);if(p.t>1.6){pulses.splice(i,1);continue}
+      g.fillStyle=`rgba(${p.col},${.14*a})`;g.fillRect(p.c*S+2,p.r*S+2,S-4,S-4)}
+    for(let i=tr.length-1;i>=0;i--){const b=tr[i];b.p+=b.dir*b.v*dt;
+      if(b.p<-200||b.p>(b.h?W:H)+200){tr.splice(i,1);continue}
+      const x0=b.h?b.p:b.line,y0=b.h?b.line:b.p,x1=b.h?b.p-b.dir*b.len:b.line,y1=b.h?b.line:b.p-b.dir*b.len;
+      const gr=g.createLinearGradient(x0,y0,x1,y1);gr.addColorStop(0,`rgba(${b.col},.9)`);gr.addColorStop(1,`rgba(${b.col},0)`);
+      g.strokeStyle=gr;g.lineWidth=2.5;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke();
+      g.fillStyle=`rgba(${b.col},.35)`;g.beginPath();g.arc(x0,y0,6,0,7);g.fill()}
+  }
+  addEventListener('resize',size);size();requestAnimationFrame(draw);
+})();
 try{const n=localStorage.getItem('arena_nick');if(n)$('nick').value=n}catch(_){}
 const h=location.hash.slice(1).toUpperCase().replace(/[^A-Z0-9]/g,'');
 if(h)$('code').value=h;
