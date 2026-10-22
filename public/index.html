@@ -339,7 +339,7 @@ const stickL={id:null,ox:0,oy:0,dx:0,dy:0},stickR={id:null,ox:0,oy:0,dx:0,dy:0};
 let curIn={mx:0,my:0,ang:0,f:false};
 let solo=false,local=null,localMsg=null,localClose=null,botCount=5;
 let soloMode='ffa',soloDiff='normal',roomMode='ffa',roomDiff='normal',teamK=[0,0];
-let freeze=0,roundN=0,soloMap='random',roomMap='random',curMap=getMap('warehouse'),Z=1,VW=0,VH=0,miniFor=null;
+let freeze=0,resetIn=0,roundN=0,soloMap='random',roomMap='random',curMap=getMap('warehouse'),Z=1,VW=0,VH=0,miniFor=null;
 const MAP_NAME=Object.fromEntries([...MAP_LIST,['random','랜덤']]);
 const TEAM_NAME=['블루','레드'],TEAM_COL=['#5aa9e6','#e2574c'];
 const teamOf=id=>{const p=lobbyList.find(x=>x[0]===id);return p?p[5]:0};
@@ -518,7 +518,7 @@ function handle(m){
 function pushFeed(txt,t){feed.unshift({txt,t});feed.length=Math.min(feed.length,4)}
 function posOf(id){return id===myId?me:others.get(id)}
 function onSnap(m){
-  const now=performance.now();clock=m.c;freeze=m.fz||0;roundN=m.rd||roundN;
+  const now=performance.now();clock=m.c;freeze=m.fz||0;resetIn=m.rs||0;roundN=m.rd||roundN;
   const moving=Math.hypot(curIn.mx,curIn.my)>.01;
   for(const[id,x,y,ang,hp,dead,inv,wk,rl,team]of m.p){
     if(id===myId){
@@ -748,6 +748,11 @@ function render(){
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f2b134';ctx.font='700 46px "Chakra Petch",sans-serif';
     ctx.fillText(`라운드 ${roundN}`,W/2,H/2-26);
     ctx.fillStyle='#e6ece9';ctx.font='700 30px "Chakra Petch",sans-serif';ctx.fillText(Math.ceil(freeze)+'',W/2,H/2+22);
+  }
+  if(roomMode==='duel'&&resetIn>0&&freeze<=0){
+    ctx.textAlign='center';ctx.textBaseline='middle';const lost=me.dead>0;
+    ctx.fillStyle=lost?'rgba(226,87,76,.95)':'rgba(79,195,161,.95)';ctx.font='700 40px "Chakra Petch",sans-serif';ctx.fillText(lost?'라운드 패배':'라운드 승리!',W/2,H*.3);
+    ctx.fillStyle='#e6ece9';ctx.font='700 20px "Chakra Petch",sans-serif';ctx.fillText(`다음 라운드까지 ${Math.ceil(resetIn)}`,W/2,H*.3+36);
   }
   if(me.dead>0&&roomMode!=='duel'){
     ctx.fillStyle='rgba(15,19,22,.55)';ctx.fillRect(0,0,W,H);

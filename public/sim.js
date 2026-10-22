@@ -1,7 +1,7 @@
 // Game simulation. Runs in the Durable Object for online rooms, and in the browser for AI practice.
 import {WEAPONS,MUZZLE,T,MATCH,GOAL,TEAM_GOAL,DUEL_GOAL,R,MAX_PLAYERS,DROP_EVERY,DROP_MAX,DROP_KINDS,tile,moveStep,los,inBush,randOpen,getMap,pickMap,MAP_LIST} from './shared.js';
 
-const TICK=30,RESPAWN=3,RESULT_SECS=6;
+const TICK=30,DUEL_WAIT=3,RESPAWN=3,RESULT_SECS=6;
 const BOT_NAMES=['Fox','Rook','Vega','Moss','Juno','Kite','Ash'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // Bot skill: reaction delay, aim noise, turn speed, sight range, fire cone, item hunting
@@ -17,7 +17,7 @@ export class Game{
     this.players=new Map();this.nextId=1;this.phase='LOBBY';this.clock=MATCH;
     this.bullets=[];this.items=[];this.dropT=0;this.hostId=0;this.code='';
     this.timer=null;this.last=0;this.resultT=0;this.fill=0;this.uid=1;
-    this.mode='ffa';this.diff='normal';this.mapSel='random';this.freeze=0;this.round=0;this.map=getMap('warehouse');
+    this.mode='ffa';this.diff='normal';this.mapSel='random';this.freeze=0;this.resetIn=0;this.round=0;this.map=getMap('warehouse');
   }
   isTeam(){return this.mode==='team'}
   foe(a,b){return a!==b&&(!this.isTeam()||a.team!==b.team)}
@@ -143,7 +143,7 @@ export class Game{
   startMatch(){
     for(const p of[...this.players.values()])if(p.bot&&(p.auto||this.fill>0))this.players.delete(p.id);
     this.map=getMap(pickMap(this.mapSel));
-    this.phase='PLAYING';this.clock=MATCH;this.bullets=[];this.dropT=3;this.uid=1;
+    this.phase='PLAYING';this.resetIn=0;this.clock=MATCH;this.bullets=[];this.dropT=3;this.uid=1;
     for(let i=0;i<this.fill&&this.players.size<MAX_PLAYERS;i++)this.addBot(BOT_NAMES[i%BOT_NAMES.length],false);
     if(this.isDuel()){
       while(this.players.size<2)this.addBot(BOT_NAMES[0],true);
@@ -159,6 +159,7 @@ export class Game{
     this.broadcastLobby();
   }
   endMatch(reason){
+    this.resetIn=0;
     if(this.phase!=='PLAYING')return;
     this.phase='RESULT';this.resultT=RESULT_SECS;this.bullets=[];
     const rank=[...this.players.values()].sort((a,b)=>b.kills-a.kills||a.deaths-b.deaths);
@@ -208,7 +209,7 @@ export class Game{
       const src=this.players.get(srcId);if(src)src.kills++;
       this.all({t:'kill',by:srcId,id:v.id,bn:src?src.name:'?',vn:v.name});
       this.broadcastLobby();
-      if(this.isDuel()){if(src&&src.kills>=DUEL_GOAL)this.endMatch('goal');else this.roundReset()}
+      if(this.isDuel()){if(src&&src.kills>=DUEL_GOAL)this.endMatch('goal');else{this.resetIn=DUEL_WAIT;v.dead=DUEL_WAIT+.5}}
       else if(this.isTeam()){if(src&&this.teamKills()[src.team]>=TEAM_GOAL)this.endMatch('goal')}
       else if(src&&src.kills>=GOAL)this.endMatch('goal');
     }
@@ -319,6 +320,7 @@ export class Game{
     if(this.phase!=='PLAYING')return;
     this.clock-=dt;
     if(this.clock<=0){this.clock=0;this.endMatch('time');return}
+    if(this.resetIn>0){this.resetIn-=dt;if(this.resetIn<=0){this.resetIn=0;this.roundReset()}}
     if(this.freeze>0)this.freeze=Math.max(0,this.freeze-dt);
     const frozen=this.freeze>0;
     for(const p of this.players.values()){
@@ -341,7 +343,7 @@ export class Game{
     for(const p of this.players.values()){
       if(!p.ws)continue;
       const s=p.slots[p.cur];
-      this.send(p,{t:'s',c:+this.clock.toFixed(1),fz:+this.freeze.toFixed(1),rd:this.round,p:ps,m:{mag:s.mag,res:s.res,cur:p.cur,sl:p.slots.map(x=>x.k)}});
+      this.send(p,{t:'s',c:+this.clock.toFixed(1),fz:+this.freeze.toFixed(1),rs:+this.resetIn.toFixed(1),rd:this.round,p:ps,m:{mag:s.mag,res:s.res,cur:p.cur,sl:p.slots.map(x=>x.k)}});
     }
   }
 }
