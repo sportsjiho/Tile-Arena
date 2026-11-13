@@ -227,7 +227,7 @@ button:disabled{opacity:.5;cursor:default}
         <li><b>7</b><span>맵</span></li>
         <li><b>3</b><span>AI 난이도</span></li>
       </ul>
-      <p class="keys only-d"><kbd>WASD</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체</p>
+      <p class="keys only-d"><kbd>WASD</kbd> / <kbd>방향키</kbd> 이동 · 마우스 조준/발사 · <kbd>R</kbd> 재장전 · <kbd>1</kbd>–<kbd>3</kbd>/휠 무기 교체</p>
     </div>
     <div class="hmenu">
     <div class="acct" id="acct" hidden>
@@ -593,6 +593,7 @@ function renderLobby(){
 // ---------- input ----------
 addEventListener('keydown',e=>{
   if(mode!=='PLAYING'||e.target.tagName==='INPUT')return;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
   keys[e.code]=true;
   if(e.code==='KeyR')send({t:'rl'});
   if(e.code.startsWith('Digit')){const i=+e.code.slice(5)-1;if(me&&me.sl&&me.sl[i]!==undefined)send({t:'sw',i})}
@@ -622,10 +623,10 @@ cv.addEventListener('touchmove',e=>{
 },{passive:false});
 const endTouch=e=>{for(const t of e.changedTouches)for(const st of[stickL,stickR])if(st.id===t.identifier){st.id=null;st.dx=st.dy=0}};
 cv.addEventListener('touchend',endTouch);cv.addEventListener('touchcancel',endTouch);
-$('bReload').addEventListener('touchstart',e=>{e.preventDefault();send({t:'rl'})});
+$('bReload').addEventListener('touchstart',e=>{e.preventDefault();send({t:'rl'});});
 $('bSwap').addEventListener('touchstart',e=>{e.preventDefault();swap(1)});
 function readInput(){
-  let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0),my=(keys.KeyS?1:0)-(keys.KeyW?1:0),f=false,ang=me.ang||0;
+  let mx=((keys.KeyD||keys.ArrowRight)?1:0)-((keys.KeyA||keys.ArrowLeft)?1:0),my=((keys.KeyS||keys.ArrowDown)?1:0)-((keys.KeyW||keys.ArrowUp)?1:0),f=false,ang=me.ang||0;
   if(stickL.id!==null){mx=stickL.dx;my=stickL.dy}
   if(stickR.id!==null){if(Math.hypot(stickR.dx,stickR.dy)>.3){ang=Math.atan2(stickR.dy,stickR.dx);f=true}}
   else if(!isTouch){const c=cam();ang=Math.atan2(mouse.y/Z+c.y-me.y,mouse.x/Z+c.x-me.x);f=mouse.down}
